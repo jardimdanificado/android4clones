@@ -1,0 +1,15 @@
+{
+  "name": "android4clone-patcher",
+  "version": "1.0.0",
+  "description": "DTS Patcher for Android clones",
+  "main": "android4clone.js",
+  "type": "module",
+  "scripts": {
+    "start": "npx serve .",
+    "test": "node android4clone.js devices/sticker/rk3326-hg36-linux.dts --stock devices/sticker/rf3536k3ka.dts --experimental -o test-output.dts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}
