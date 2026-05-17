@@ -4,256 +4,836 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DTPatcher</title>
+    <title>🪾TreePatcher - R36S DTB Tools</title>
+
+    <!-- Premium Tech Fonts from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
     <style>
         :root {
-            --primary: #3b82f6;
-            --primary-hover: #2563eb;
-            --bg: #0f172a;
-            --card-bg: #1e293b;
-            --text: #f8fafc;
-            --text-dim: #94a3b8;
-            --border: #334155;
-            --success: #10b981;
+            /* Gruvbox Dark Retro Color Scheme */
+            --bg: #282828;
+            --bg-hard: #1d2021;
+            --surface: #32302f;
+            --border: #504945;
+
+            /* Text Levels */
+            --text-hi: #ebdbb2;
+            /* fg0 soft cream */
+            --text-mid: #d5c4a1;
+            /* fg1 secondary cream */
+            --text: #a89984;
+            /* fg3 body gray-brown */
+            --muted: #7c6f64;
+            /* fg4 dark gray comment */
+
+            /* Bright Accent Palette */
+            --yellow: #fabd2f;
+            --orange: #fe8019;
+            --green: #b8bb26;
+            --aqua: #8ec07c;
+            --blue: #83a598;
+            --red: #fb4934;
+
+            --lh: 1.8;
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+
+        /* Selection highlights matching reference */
+        ::selection {
+            background: var(--yellow);
+            color: var(--bg-hard);
+        }
+
+        ::-moz-selection {
+            background: var(--yellow);
+            color: var(--bg-hard);
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg);
             color: var(--text);
+            line-height: var(--lh);
             margin: 0;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: 40px 20px;
         }
 
         .container {
             width: 100%;
-            max-width: 600px;
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            max-width: 660px;
+            background: var(--bg);
+            padding: 2.5rem;
+            border-radius: 4px;
             border: 1px solid var(--border);
+            box-shadow: none;
+            /* Flat retro styling */
+        }
+
+        /* Top Header Styling */
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1.5rem;
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .logo-svg {
+            animation: pulse 4s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.03);
+            }
         }
 
         h1 {
-            margin-top: 0;
-            font-size: 1.5rem;
-            text-align: center;
-            color: var(--primary);
-            margin-bottom: 1.5rem;
-            letter-spacing: -0.025em;
+            font-family: 'IBM Plex Mono', monospace;
+            margin: 0;
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--yellow);
+            letter-spacing: -0.03em;
+            margin-bottom: 0.1rem;
+            text-transform: uppercase;
         }
 
+        .subtitle {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--muted);
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        /* Text Editor Style Tabs (Vim/Emacs look) */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+            gap: 0.25rem;
+            background: transparent;
+            padding: 0;
+        }
+
+        .tab-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-bottom: none;
+            color: var(--text);
+            padding: 0.5rem 1.25rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            margin-bottom: -1px;
+            /* Align overlay border-bottom */
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-hi);
+            background: var(--border);
+        }
+
+        .tab-btn.active {
+            color: var(--yellow);
+            background: var(--bg);
+            border-bottom: 1px solid var(--bg);
+            font-weight: 600;
+            cursor: default;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* Form Controls & Labels */
         .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.75rem;
         }
 
         label {
             display: block;
             margin-bottom: 0.5rem;
-            font-weight: 500;
-            font-size: 0.875rem;
-            color: var(--text-dim);
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
         }
 
-        input[type="file"],
+        /* Retro Terminal Drag & Drop Zone */
+        .file-upload-zone {
+            position: relative;
+            border: 1px dashed var(--border);
+            background: var(--bg-hard);
+            border-radius: 4px;
+            padding: 1.75rem;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .file-upload-zone:hover {
+            border-color: var(--yellow);
+            background: var(--surface);
+        }
+
+        .file-upload-zone.active {
+            border-color: var(--green);
+        }
+
+        .file-upload-zone input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 1.35rem;
+            margin-bottom: 0.25rem;
+            display: block;
+            color: var(--text);
+        }
+
+        .file-info {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-hi);
+            word-break: break-all;
+        }
+
+        .file-status {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-top: 0.35rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: inline-block;
+            padding: 0.05rem 0.4rem;
+            border-radius: 2px;
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .file-status.dts {
+            color: var(--bg-hard);
+            background: var(--orange);
+        }
+
+        .file-status.dtb {
+            color: var(--bg-hard);
+            background: var(--yellow);
+        }
+
+        /* Code/Console Style Inputs */
         input[type="text"] {
             width: 100%;
-            padding: 0.75rem;
-            background: var(--bg);
+            padding: 0.75rem 1rem;
+            background: var(--bg-hard);
             border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            color: var(--text);
-            box-sizing: border-box;
-            font-size: 0.875rem;
+            border-radius: 4px;
+            color: var(--text-hi);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            outline: none;
         }
 
-        input[type="file"]::file-selector-button {
-            background: var(--primary);
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 0.25rem;
-            color: white;
-            cursor: pointer;
-            margin-right: 1rem;
-            transition: background 0.2s;
+        input[type="text"]:focus {
+            border-color: var(--yellow);
         }
 
-        input[type="file"]::file-selector-button:hover {
-            background: var(--primary-hover);
-        }
-
-        .checkbox-group {
+        /* Custom Switch Button (Vim style toggle) */
+        .switch-group {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            margin-top: 1rem;
+            justify-content: space-between;
+            background: var(--bg-hard);
+            border: 1px solid var(--border);
+            padding: 0.85rem 1.25rem;
+            border-radius: 4px;
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
         }
 
-        .checkbox-group input {
-            width: 1.2rem;
-            height: 1.2rem;
-            cursor: pointer;
+        .switch-label-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
         }
 
-        button {
-            width: 100%;
-            padding: 1rem;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
+        .switch-title {
+            font-family: 'IBM Plex Mono', monospace;
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-hi);
+        }
+
+        .switch-desc {
+            font-size: 0.75rem;
+            color: var(--text);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
             cursor: pointer;
-            transition: all 0.2s;
-            margin-top: 1rem;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            transition: .2s;
+            border-radius: 2px;
         }
 
-        button:hover {
-            background: var(--primary-hover);
-            transform: translateY(-1px);
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text);
+            transition: .2s;
+            border-radius: 1px;
         }
 
-        button:active {
-            transform: translateY(0);
+        input:checked+.slider {
+            background-color: var(--yellow);
+            border-color: var(--yellow);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(22px);
+            background-color: var(--bg-hard);
+        }
+
+        /* Flat Gruvbox Buttons */
+        .btn {
+            width: 100%;
+            padding: 0.85rem;
+            background: var(--yellow);
+            color: var(--bg-hard);
+            border: 1px solid var(--yellow);
+            border-radius: 4px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .btn:hover {
+            background: var(--bg-hard);
+            color: var(--yellow);
+            border-color: var(--yellow);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn:active {
+            background: var(--surface);
+        }
+
+        .btn:disabled {
+            background: var(--surface);
+            color: var(--muted);
+            border-color: var(--border);
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Console/Terminal Window matching Gruvbox */
+        .terminal-container {
+            margin-top: 2rem;
+            background: var(--bg-hard);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border);
+        }
+
+        .terminal-title {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
         }
 
         #log {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background: var(--bg);
-            border-radius: 0.5rem;
-            font-family: 'Fira Code', 'Courier New', Courier, monospace;
-            font-size: 0.75rem;
-            max-height: 200px;
+            padding: 1.25rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            max-height: 220px;
             overflow-y: auto;
-            border: 1px solid var(--border);
             white-space: pre-wrap;
-            color: var(--text-dim);
+            color: var(--text-mid);
         }
 
         .log-entry {
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.4rem;
+            border-left: 2px solid transparent;
+            padding-left: 0.5rem;
         }
 
         .log-info {
-            color: var(--text-dim);
+            border-color: var(--border);
+            color: var(--text);
         }
 
         .log-success {
-            color: var(--success);
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .log-warning {
+            border-color: var(--orange);
+            color: var(--orange);
         }
 
         .log-error {
-            color: #ef4444;
+            border-color: var(--red);
+            color: var(--red);
         }
 
         footer {
-            margin-top: 2rem;
+            margin-top: 2.5rem;
             text-align: center;
+            font-family: 'IBM Plex Mono', monospace;
             font-size: 0.75rem;
-            color: var(--text-dim);
+            color: var(--muted);
+            letter-spacing: 0.025em;
+            border-top: 1px solid var(--border);
+            padding-top: 1.25rem;
+        }
+
+        footer a {
+            color: var(--blue);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+        }
+
+        footer a:hover {
+            border-color: var(--blue);
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>Android4Clone Patcher</h1>
+        <!-- Brand Header -->
+        <header>
+            <h1>🪾TreePatcher</h1>
+            <div class="subtitle">R36S DTB Tools</div>
+        </header>
 
-        <div class="form-group">
-            <label for="targetFile">Target DTS (Base)</label>
-            <input type="file" id="targetFile" accept=".dts">
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="patcher-panel">
+                PATCHER
+            </button>
+            <button class="tab-btn" data-tab="converter-panel">
+                CONVERTER
+            </button>
         </div>
 
-        <div class="form-group">
-            <label for="stockFile">Stock DTS (Hardware Info)</label>
-            <input type="file" id="stockFile" accept=".dts">
+        <!-- TAB 1: PATCHER PANEL -->
+        <div id="patcher-panel" class="tab-panel active">
+            <div class="form-group">
+                <label>Target DTS or DTB (Base)</label>
+                <div class="file-upload-zone" id="target-upload-zone">
+                    <span class="file-info" id="target-file-info">Select target base DTS / DTB file</span>
+                    <br>
+                    <span class="file-status" id="target-file-status">no file</span>
+                    <input type="file" id="targetFile" accept=".dts,.dtb,.dtbo">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Stock DTS or DTB (Hardware Info)</label>
+                <div class="file-upload-zone" id="stock-upload-zone">
+                    <span class="file-info" id="stock-file-info">Select stock DTS / DTB file</span>
+                    <br>
+                    <span class="file-status" id="stock-file-status">no file</span>
+                    <input type="file" id="stockFile" accept=".dts,.dtb,.dtbo">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="outputName">Output Filename</label>
+                <input type="text" id="outputName" value="rk3326-r36s-android.dtb"
+                    placeholder="filename.dtb or filename.dts">
+            </div>
+
+            <div class="switch-group">
+                <div class="switch-label-container">
+                    <span class="switch-title">Experimental Tweaks</span>
+                    <span class="switch-desc">Boost MMC frequencies, enable PWM Joypad, and LDO settings</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="experimental">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <button id="patchBtn" class="btn">Apply Patches & Save</button>
         </div>
 
-        <div class="form-group">
-            <label for="outputName">Output Filename</label>
-            <input type="text" id="outputName" value="rk3326-r36s-android.dts">
+        <!-- TAB 2: CONVERTER PANEL -->
+        <div id="converter-panel" class="tab-panel">
+            <div class="form-group">
+                <label>DTS or DTB File to Convert</label>
+                <div class="file-upload-zone" id="convert-upload-zone">
+                    <span class="file-info" id="convert-file-info">Select file to convert</span>
+                    <br>
+                    <span class="file-status" id="convert-file-status">no file</span>
+                    <input type="file" id="convertFile" accept=".dts,.dtb,.dtbo">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="convertOutputName">Output Filename</label>
+                <input type="text" id="convertOutputName" value="" placeholder="Suggested on file load">
+            </div>
+
+            <button id="convertBtn" class="btn" disabled>Convert & Download</button>
         </div>
 
-        <div class="checkbox-group">
-            <input type="checkbox" id="experimental">
-            <label for="experimental">Enable Experimental Tweaks (MMC, PWM, LDO)</label>
+        <!-- Terminal Output -->
+        <div class="terminal-container">
+            <div class="terminal-header">
+                <div class="terminal-dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <div class="terminal-title">TreePatcher Console</div>
+                <div></div>
+            </div>
+            <div id="log">Ready. Select files to begin.</div>
         </div>
 
-        <button id="patchBtn">Apply Patches & Download</button>
-
-        <div id="log">Ready. Select files to begin.</div>
-
+        <!-- Footer -->
         <footer>
-            Built for RK3326 Handheld Clones
+            TreePatcher © 2026 | Powered by Emscripten WebAssembly DTC<br>
+            Special thanks to <a href="https://github.com/lcdyk0517/lcdyk0517.github.io/blob/main/tools"
+                target="_blank">lcdyk0517</a>
         </footer>
     </div>
 
+    <!-- Main Logic Script -->
     <script type="module">
         import { parseDTS } from './parser36.js';
         import { applyAndroidPatches } from './patcher-logic.js';
+        import { convert, isDTB } from './dtbtools/dtc-wrapper.js';
 
+        // Elements
         const logEl = document.getElementById('log');
         const patchBtn = document.getElementById('patchBtn');
+        const convertBtn = document.getElementById('convertBtn');
 
+        // Panels and tabs
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+
+        // File states
+        let targetFileData = null;
+        let stockFileData = null;
+        let convertFileData = null;
+
+        // Custom Console Logging
         function log(msg, type = 'info') {
             const entry = document.createElement('div');
             entry.className = `log-entry log-${type}`;
-            entry.textContent = msg;
+
+            let prefix = "";
+            if (type === 'success') prefix = "[OK] ";
+            else if (type === 'error') prefix = "[ERR] ";
+            else if (type === 'warning') prefix = "[WARN] ";
+            else prefix = "[INFO] ";
+
+            entry.textContent = `${prefix}${msg}`;
             logEl.appendChild(entry);
             logEl.scrollTop = logEl.scrollHeight;
         }
 
-        function readFile(file) {
+        function clearLog() {
+            logEl.innerHTML = '';
+        }
+
+        // Tab Navigation Logic
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetPanelId = btn.getAttribute('data-tab');
+
+                // Toggle active tab button
+                tabButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Toggle active panel
+                tabPanels.forEach(panel => {
+                    if (panel.id === targetPanelId) {
+                        panel.classList.add('active');
+                    } else {
+                        panel.classList.remove('active');
+                    }
+                });
+            });
+        });
+
+        // Helper to read file as ArrayBuffer
+        function readFileAsArrayBuffer(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
+                reader.onload = () => resolve(new Uint8Array(reader.result));
                 reader.onerror = reject;
-                reader.readAsText(file);
+                reader.readAsArrayBuffer(file);
             });
         }
 
-        patchBtn.addEventListener('click', async () => {
-            const targetInput = document.getElementById('targetFile');
-            const stockInput = document.getElementById('stockFile');
-            const outputName = document.getElementById('outputName').value || 'rk3326-r36-android.dts';
-            const experimental = document.getElementById('experimental').checked;
+        // Process uploaded files and identify their format
+        async function handleUploadedFile(file, infoEl, statusEl, zoneEl) {
+            try {
+                const bytes = await readFileAsArrayBuffer(file);
+                const isBinary = isDTB(bytes);
 
-            if (!targetInput.files[0]) {
-                log('Error: Please select a target DTS file.', 'error');
+                infoEl.textContent = file.name;
+                zoneEl.classList.add('active');
+
+                if (isBinary) {
+                    statusEl.textContent = 'Binary DTB';
+                    statusEl.className = 'file-status dtb';
+                    log(`Loaded ${file.name}: Automatically detected as Binary DTB format.`, 'info');
+                    return { isDtb: true, bytes, name: file.name };
+                } else {
+                    statusEl.textContent = 'Source DTS';
+                    statusEl.className = 'file-status dts';
+                    log(`Loaded ${file.name}: Automatically detected as Source DTS format.`, 'info');
+                    return { isDtb: false, bytes, name: file.name };
+                }
+            } catch (err) {
+                log(`Failed to parse ${file.name}: ${err.message}`, 'error');
+                statusEl.textContent = 'Load failed';
+                statusEl.className = 'file-status';
+                zoneEl.classList.remove('active');
+                return null;
+            }
+        }
+
+        // --- Event Listeners for File Inputs ---
+
+        // Target File Upload
+        const targetInput = document.getElementById('targetFile');
+        const targetZone = document.getElementById('target-upload-zone');
+        targetInput.addEventListener('change', async (e) => {
+            if (e.target.files[0]) {
+                targetFileData = await handleUploadedFile(
+                    e.target.files[0],
+                    document.getElementById('target-file-info'),
+                    document.getElementById('target-file-status'),
+                    targetZone
+                );
+
+                // Smart Output filename guess:
+                // Keep the root name but default to .dtb
+                const baseName = e.target.files[0].name.split('.').slice(0, -1).join('.');
+                document.getElementById('outputName').value = `${baseName}-android.dtb`;
+            }
+        });
+
+        // Stock File Upload
+        const stockInput = document.getElementById('stockFile');
+        const stockZone = document.getElementById('stock-upload-zone');
+        stockInput.addEventListener('change', async (e) => {
+            if (e.target.files[0]) {
+                stockFileData = await handleUploadedFile(
+                    e.target.files[0],
+                    document.getElementById('stock-file-info'),
+                    document.getElementById('stock-file-status'),
+                    stockZone
+                );
+            }
+        });
+
+        // Converter File Upload
+        const convertInput = document.getElementById('convertFile');
+        const convertZone = document.getElementById('convert-upload-zone');
+        convertInput.addEventListener('change', async (e) => {
+            if (e.target.files[0]) {
+                convertFileData = await handleUploadedFile(
+                    e.target.files[0],
+                    document.getElementById('convert-file-info'),
+                    document.getElementById('convert-file-status'),
+                    convertZone
+                );
+
+                if (convertFileData) {
+                    convertBtn.disabled = false;
+                    const baseName = e.target.files[0].name.split('.').slice(0, -1).join('.');
+                    // If input is DTB, output dts; if input is DTS, output dtb
+                    const targetExt = convertFileData.isDtb ? 'dts' : 'dtb';
+                    document.getElementById('convertOutputName').value = `${baseName}.${targetExt}`;
+                    log(`Ready to convert. Suggested output filename: ${baseName}.${targetExt}`, 'info');
+                } else {
+                    convertBtn.disabled = true;
+                }
+            }
+        });
+
+        // --- Operations Logic ---
+
+        // Helper to resolve input file contents into DTS string (decompiling if DTB)
+        async function getDtsString(fileData, fileLabel) {
+            if (fileData.isDtb) {
+                log(`[WASM DTC] Decompiling ${fileLabel} DTB binary to DTS text...`, 'info');
+                const dtsText = await convert(fileData.bytes, { outFilename: 'temp.dts' });
+                log(`[WASM DTC] ${fileLabel} decompiled successfully.`, 'info');
+                return dtsText;
+            } else {
+                return new TextDecoder('utf-8').decode(fileData.bytes);
+            }
+        }
+
+        // Apply Patches and Port
+        patchBtn.addEventListener('click', async () => {
+            if (!targetFileData) {
+                log('Error: Please select a target Base DTS or DTB file.', 'error');
                 return;
             }
 
-            logEl.innerHTML = '';
-            log('Starting patch process...');
+            const outputName = document.getElementById('outputName').value || 'rk3326-r36s-android.dtb';
+            const experimental = document.getElementById('experimental').checked;
+
+            clearLog();
+            log('Starting TreePatcher adaptation engine...', 'info');
 
             try {
-                log(`Reading ${targetInput.files[0].name}...`);
-                const targetSrc = await readFile(targetInput.files[0]);
-                const dts = parseDTS(targetSrc);
+                // 1. Resolve base file content (DTS text)
+                const targetDtsText = await getDtsString(targetFileData, 'Base');
+                log('Parsing Base Device Tree structure...');
+                const dts = parseDTS(targetDtsText);
 
+                // 2. Resolve stock file content if provided
                 let stock = null;
-                if (stockInput.files[0]) {
-                    log(`Reading ${stockInput.files[0].name}...`);
-                    const stockSrc = await readFile(stockInput.files[0]);
-                    stock = parseDTS(stockSrc);
+                if (stockFileData) {
+                    const stockDtsText = await getDtsString(stockFileData, 'Stock');
+                    log('Parsing Stock Device Tree structure...');
+                    stock = parseDTS(stockDtsText);
                 }
 
+                // 3. Apply porting engine logic
+                log('Applying hardware cloning adaptation rules...');
                 applyAndroidPatches(dts, stock, {
                     experimental,
-                    logger: (msg) => log(msg)
+                    logger: (msg) => log(msg, 'info')
                 });
 
-                log('Generating output...', 'info');
-                const result = dts.toString();
+                log('Generating modified Device Tree source...', 'info');
+                const patchedDtsString = dts.toString();
 
-                const blob = new Blob([result], { type: 'text/plain' });
+                // 4. Determine final output format (compile to DTB if output ends in .dtb/.dtbo)
+                const outputExt = outputName.split('.').pop().toLowerCase();
+                const shouldCompile = outputExt === 'dtb' || outputExt === 'dtbo';
+
+                let finalData;
+                let mimeType;
+
+                if (shouldCompile) {
+                    log('[WASM DTC] Compiling patched DTS text into DTB binary...', 'info');
+                    finalData = await convert(patchedDtsString, { outFilename: outputName });
+                    mimeType = 'application/octet-stream';
+                    log(`[WASM DTC] Successfully compiled to DTB binary (${finalData.length} bytes)`, 'success');
+                } else {
+                    finalData = patchedDtsString;
+                    mimeType = 'text/plain';
+                }
+
+                // 5. Download the file
+                const blob = new Blob([finalData], { type: mimeType });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -261,10 +841,52 @@
                 a.click();
                 URL.revokeObjectURL(url);
 
-                log('Done! Download started.', 'success');
+                log(`Success! File "${outputName}" ready. Download started.`, 'success');
             } catch (err) {
                 console.error(err);
                 log(`Error: ${err.message}`, 'error');
+            }
+        });
+
+        // Standalone Converter
+        convertBtn.addEventListener('click', async () => {
+            if (!convertFileData) return;
+
+            const outputName = document.getElementById('convertOutputName').value || 'converted-file';
+            clearLog();
+            log('Starting stand-alone WASM converter...', 'info');
+
+            try {
+                log(`Loading source file "${convertFileData.name}"...`);
+                let inputData;
+                if (convertFileData.isDtb) {
+                    inputData = convertFileData.bytes;
+                } else {
+                    inputData = new TextDecoder('utf-8').decode(convertFileData.bytes);
+                }
+
+                log(`Invoking WebAssembly DTC compiler for target "${outputName}"...`);
+                const convertedResult = await convert(inputData, { outFilename: outputName });
+
+                // Detect if outcome is text or binary
+                const isBinaryOut = typeof convertedResult !== 'string';
+                const mimeType = isBinaryOut ? 'application/octet-stream' : 'text/plain';
+
+                log(`Conversion complete! Output type: ${isBinaryOut ? 'Binary DTB' : 'Source DTS String'}.`, 'success');
+
+                // Trigger Download
+                const blob = new Blob([convertedResult], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = outputName;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                log(`Download started for "${outputName}".`, 'success');
+            } catch (err) {
+                console.error(err);
+                log(`Conversion Failed: ${err.message}`, 'error');
             }
         });
     </script>
