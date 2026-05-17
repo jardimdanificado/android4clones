@@ -136,7 +136,7 @@ const RAW = Symbol('raw');
  * the very common DTS property named "label".
  */
 const RESERVED = new Set([
-  'get', 'add', 'find', 'remove', 'children', '$name', '$label',
+  'get', 'add', 'find', 'remove', 'children', '$name', '$label', '$properties',
   'toString', 'toJSON', 'valueOf', Symbol.toPrimitive, Symbol.iterator,
   RAW,
 ]);
@@ -154,6 +154,14 @@ function wrapNode(raw, rootAst) {
       /** node.$name / node.$label — use $ prefix to avoid colliding with DTS properties */
       if (key === '$name')  return raw.name;
       if (key === '$label') return raw.label;
+
+      /** node.$properties — return array of properties on this node */
+      if (key === '$properties') {
+        return raw.properties.map(p => ({
+          name: p.name,
+          value: readProp(raw, p.name)
+        }));
+      }
 
       /** node.children — iterable of wrapped nodes */
       if (key === 'children') {
@@ -260,6 +268,15 @@ function wrapNode(raw, rootAst) {
       writeProp(raw, key, value);
       return true;
     },
+
+    deleteProperty(_, key) {
+      if (RESERVED.has(key)) throw new Error(`"${String(key)}" is reserved.`);
+      const idx = raw.properties.findIndex(p => p.name === key);
+      if (idx !== -1) {
+        raw.properties.splice(idx, 1);
+      }
+      return true;
+    }
   };
 
   return new Proxy({}, handler);

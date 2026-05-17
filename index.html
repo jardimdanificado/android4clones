@@ -601,6 +601,9 @@
             <button class="tab-btn" data-tab="comparator-panel">
                 COMPARATOR
             </button>
+            <button class="tab-btn" data-tab="generator-panel">
+                PATCH GENERATOR
+            </button>
         </div>
 
         <!-- TAB 1: PATCHER PANEL -->
@@ -719,6 +722,44 @@
                 <label style="margin-top: 1.5rem; display: block;">DTS Line-by-Line Differences</label>
                 <div id="compare-diff-view" class="terminal-container" style="max-height: 400px; overflow-y: auto; padding: 1rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; line-height: 1.5; background: var(--bg-hard); border: 1px solid var(--border);">
                     <!-- Diff details here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: PATCH GENERATOR PANEL -->
+        <div id="generator-panel" class="tab-panel">
+            <div class="editor-layout">
+                <!-- File Input Col Origin -->
+                <div style="flex: 1; min-width: 0;">
+                    <label>Origin Device Tree (Base)</label>
+                    <div class="file-upload-zone" id="genorigin-upload-zone">
+                        <span class="file-info" id="genorigin-file-info">Select Origin DTS / DTB</span>
+                        <br>
+                        <span class="file-status" id="genorigin-file-status">no file</span>
+                        <input type="file" id="genOriginFile" accept=".dts,.dtb,.dtbo">
+                    </div>
+                </div>
+
+                <!-- File Input Col Target -->
+                <div style="flex: 1; min-width: 0;">
+                    <label>Target Device Tree (Reference)</label>
+                    <div class="file-upload-zone" id="gentarget-upload-zone">
+                        <span class="file-info" id="gentarget-file-info">Select Target DTS / DTB</span>
+                        <br>
+                        <span class="file-status" id="gentarget-file-status">no file</span>
+                        <input type="file" id="genTargetFile" accept=".dts,.dtb,.dtbo">
+                    </div>
+                </div>
+            </div>
+
+            <button id="generateBtn" class="btn" style="margin-top: 1.5rem;" disabled>Generate JS Patch</button>
+
+            <!-- Generator Workspace (hidden initially) -->
+            <div id="gen-workspace" style="display: none; margin-top: 1.5rem;">
+                <div class="tracker-card">
+                    <label>Generated JS Patch Code</label>
+                    <textarea id="generatedPatchCode" readonly style="width: 100%; height: 350px; background: var(--bg-hard); border: 1px solid var(--border); border-radius: 4px; padding: 1rem; color: var(--green); font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; line-height: 1.5; resize: vertical; margin-top: 0.5rem;"></textarea>
+                    <button id="downloadGeneratedPatchBtn" class="btn-secondary" style="margin-top: 0.75rem; width: 100%;">Download JS Patch File</button>
                 </div>
             </div>
         </div>
@@ -918,158 +959,17 @@
             }
         }
 
-        // Predefined Built-in Patches
-        const BUILTIN_PATCHES = [
-            {
-                id: 'ddr_timing',
-                name: 'DDR Timing Sync',
-                desc: 'Sync DDR memory timing configuration properties from the working Stock DTB/DTS.',
-                code: `if (stock) {
-    const srcDDR = stock.get('/ddr_timing');
-    const dstDDR = dtb.get('/ddr_timing');
-    if (srcDDR && dstDDR) {
-        logger('Syncing ddr_timing from stock...');
-        syncProperties(srcDDR, dstDDR);
-    } else {
-        logger('ddr_timing node not found in both base and stock.');
-    }
-} else {
-    logger('No stock DTB provided; skipping DDR Timing Sync.');
-}`
-            },
-            {
-                id: 'mmc_tweaks',
-                name: 'MMC Speed Tweaks (Experimental)',
-                desc: 'Boost dwmmc frequencies and tweak LDO6 PMIC regulators (voltage levels) for secure RK3326 storage read/writes.',
-                code: `const ldo6 = dtb.get('/i2c@ff180000/pmic@20/regulators/LDO_REG6');
-if (ldo6) {
-    logger('Patching LDO_REG6 (SD Power)...');
-    ldo6['regulator-min-microvolt'] = 0x1b7740;
-    ldo6['regulator-max-microvolt'] = 0x2dc6c0;
-    ldo6['regulator-always-on'] = true;
-    ldo6['regulator-boot-on'] = true;
-    const stateMem = ldo6.get('regulator-state-mem');
-    if (stateMem) stateMem['regulator-suspend-microvolt'] = 0x2dc6c0;
-}
-const pwm0 = dtb.get('/pwm@ff200000');
-if (pwm0) pwm0.status = 'okay';
-for (const path of ['/dwmmc@ff370000', '/dwmmc@ff380000']) {
-    const mmc = dtb.get(path);
-    if (mmc) {
-        logger('Boosting ' + path + ' frequency...');
-        mmc['max-frequency'] = 0x8f0d180;
-        mmc['vmmc-supply'] = [0x95];
-    }
-}`
-            },
-            {
-                id: 'dsi_panel',
-                name: 'DSI Graph & Panel Binding',
-                desc: 'Bind display panel graph links, lanes, format, and timing data. Syncs from Stock panel if loaded.',
-                code: `const dsiPorts = dtb.get('/dsi@ff450000/ports');
-if (dsiPorts && !dsiPorts.get('port@1')) {
-    const port1 = dsiPorts.add('port@1', {
-        'reg': [0x01],
-        '#address-cells': [0x01],
-        '#size-cells': [0x00],
-    });
-    port1.add('endpoint', {
-        'remote-endpoint': [0x155],
-        'phandle': [0x154],
-    });
-}
-const panel = dtb.find('simple-panel-dsi');
-if (panel) {
-    panel['dsi,flags'] = [0xe03];
-    const stockPanel = stock ? stock.find('simple-panel-dsi') : null;
-    if (stockPanel) {
-        logger('Syncing panel info from stock...');
-        const props = ['compatible', 'panel-init-sequence', 'panel-exit-sequence',
-          'width-mm', 'height-mm', 'dsi,format', 'dsi,lanes'];
-        for (const name of props) {
-            const val = stockPanel[name];
-            if (val !== undefined) panel[name] = val;
-        }
-    } else if (!panel.compatible) {
-        panel.compatible = ['elida,kd35t133', 'simple-panel-dsi'];
-    }
-    if (!panel.get('ports')) {
-        const ports = panel.add('ports', {
-            '#address-cells': [0x01],
-            '#size-cells': [0x00],
-        });
-        const port0 = ports.add('port@0', { reg: [0x00] });
-        port0.add('endpoint', {
-            'remote-endpoint': [0x154],
-            'phandle': [0x155],
-        });
-    }
-}`
-            },
-            {
-                id: 'joypad',
-                name: 'Joypad Mapping & PWM (Experimental)',
-                desc: 'Remap Odroid Go 3 keycodes for DPAD/buttons and establish PWM Joypad enabling.',
-                code: `const joypad = dtb.get('/odroidgo3-joypad');
-if (joypad) {
-    logger('Remapping Joypad codes...');
-    joypad['pwms'] = [0xf1, 0x00, 0xbebc200, 0x00];
-    joypad['pwm-names'] = 'enable';
-    
-    const mapping = {
-        sw1: { code: 0x67, label: 'GPIO DPAD-UP' },
-        sw2: { code: 0x6c, label: 'GPIO DPAD-DOWN' },
-        sw3: { code: 0x69, label: 'GPIO DPAD-LEFT' },
-        sw4: { code: 0x6a, label: 'GPIO DPAD-RIGHT' },
-        sw5: { code: 0x130, label: 'GPIO BTN-A' },
-        sw6: { code: 0x131, label: 'GPIO BTN-B' },
-        sw7: { code: 0x134, label: 'GPIO BTN-Y' },
-        sw8: { code: 0x133, label: 'GPIO BTN-X' },
-        sw11: { code: 0x9e, label: 'GPIO F3' },
-        sw12: { code: 0x7d, label: 'GPIO F4' },
-        sw13: { code: 0xac, label: 'GPIO F5' },
-        sw15: { code: 0x137, label: 'GPIO TOP-LEFT' },
-        sw16: { code: 0x136, label: 'GPIO TOP-RIGHT' },
-        sw19: { code: 0x13a, label: 'GPIO F1' },
-        sw20: { code: 0x138, label: 'GPIO TOP-RIGHT2' },
-        sw21: { code: 0x139, label: 'GPIO TOP-LEFT2' },
-        sw22: { code: 0x13b, label: 'GPIO F2' },
-    };
-    for (const child of joypad.children) {
-        const m = mapping[child.$name];
-        if (m) {
-            child['linux,code'] = m.code;
-            child['label'] = m.label;
-        }
-    }
-}`
-            },
-            {
-                id: 'audio_hp',
-                name: 'Audio Jack HP Polarity',
-                desc: 'Invert Simple Audio Card headphone jack insertion detection GPIO polarity pin.',
-                code: `const audioCard = dtb.find('simple-audio-card');
-if (audioCard) {
-    const raw = audioCard.valueOf();
-    const hpDet = raw.properties.find(p => p.name === 'simple-audio-card,hp-det-gpio');
-    if (hpDet?.values[0]?.type === 'cells') {
-        logger('Flipped audio jack HP polarity pin...');
-        hpDet.values[0].value[2] = '0x00';
-    }
-}`
-            },
-            {
-                id: 'battery',
-                name: 'Battery Compatible Subsystem',
-                desc: 'Standardize PMIC rk817 battery charger driver compatible property binding.',
-                code: `const battery = dtb.find('rk817,battery') ?? dtb.get('/i2c@ff180000/pmic@20/battery');
-if (battery) {
-    logger('Standardizing battery driver compatible string...');
-    battery.compatible = 'rk817,battery';
-}`
-            }
+        // Predefined Built-in Patches definition (mapped to their actual physical files)
+        const BUILTIN_PATCH_FILES = [
+            { id: 'ddr_timing', name: 'DDR Timing Sync', desc: 'Sync DDR memory timing configuration properties from the working Stock DTB/DTS.', file: './patches/ddr_timing.js' },
+            { id: 'mmc_tweaks', name: 'MMC Speed Tweaks (Experimental)', desc: 'Boost dwmmc frequencies and tweak LDO6 PMIC regulators (voltage levels) for secure RK3326 storage read/writes.', file: './patches/mmc_tweaks.js' },
+            { id: 'dsi_panel', name: 'DSI Graph & Panel Binding', desc: 'Bind display panel graph links, lanes, format, and timing data. Syncs from Stock panel if loaded.', file: './patches/dsi_panel.js' },
+            { id: 'joypad', name: 'Joypad Mapping & PWM (Experimental)', desc: 'Remap Odroid Go 3 keycodes for DPAD/buttons and establish PWM Joypad enabling.', file: './patches/joypad.js' },
+            { id: 'audio_hp', name: 'Audio Jack HP Polarity', desc: 'Invert Simple Audio Card headphone jack insertion detection GPIO polarity pin.', file: './patches/audio_hp.js' },
+            { id: 'battery', name: 'Battery Compatible Subsystem', desc: 'Standardize PMIC rk817 battery charger driver compatible property binding.', file: './patches/battery.js' }
         ];
 
+        const BUILTIN_PATCHES = [];
         let customPatches = [];
         const patchesListContainer = document.getElementById('patches-list');
 
@@ -1093,8 +993,31 @@ if (battery) {
             });
         }
 
+        // Load built-in patches from external files dynamically on startup
+        async function loadBuiltinPatches() {
+            for (const patch of BUILTIN_PATCH_FILES) {
+                try {
+                    const res = await fetch(patch.file);
+                    if (res.ok) {
+                        const code = await res.text();
+                        BUILTIN_PATCHES.push({
+                            id: patch.id,
+                            name: patch.name,
+                            desc: patch.desc,
+                            code: code.trim()
+                        });
+                    } else {
+                        console.error(`Failed to fetch builtin patch file: ${patch.file}`);
+                    }
+                } catch (e) {
+                    console.error("Failed to load builtin patch file: " + patch.file, e);
+                }
+            }
+            renderPatchesChecklist();
+        }
+
         // Initialize checklist on load
-        renderPatchesChecklist();
+        loadBuiltinPatches();
 
         // Custom Patch File upload
         const customPatchInput = document.getElementById('customPatchFile');
@@ -1567,6 +1490,214 @@ if (battery) {
             a.click();
             URL.revokeObjectURL(url);
             log('Comparison report downloaded.', 'success');
+        });
+
+        // ==========================================
+        // --- PATCH GENERATOR LOGIC ---
+        // ==========================================
+        let genOriginFileData = null;
+        let genTargetFileData = null;
+        let generatedPatchCode = '';
+
+        const genOriginInput = document.getElementById('genOriginFile');
+        const genOriginZone = document.getElementById('genorigin-upload-zone');
+        genOriginInput.addEventListener('change', async (e) => {
+            if (e.target.files[0]) {
+                genOriginFileData = await handleUploadedFile(
+                    e.target.files[0],
+                    document.getElementById('genorigin-file-info'),
+                    document.getElementById('genorigin-file-status'),
+                    genOriginZone
+                );
+                checkGenReady();
+            }
+        });
+
+        const genTargetInput = document.getElementById('genTargetFile');
+        const genTargetZone = document.getElementById('gentarget-upload-zone');
+        genTargetInput.addEventListener('change', async (e) => {
+            if (e.target.files[0]) {
+                genTargetFileData = await handleUploadedFile(
+                    e.target.files[0],
+                    document.getElementById('gentarget-file-info'),
+                    document.getElementById('gentarget-file-status'),
+                    genTargetZone
+                );
+                checkGenReady();
+            }
+        });
+
+        function checkGenReady() {
+            document.getElementById('generateBtn').disabled = !(genOriginFileData && genTargetFileData);
+        }
+
+        function formatValueForJs(val) {
+            if (val === true) return 'true';
+            if (typeof val === 'string') return JSON.stringify(val);
+            if (typeof val === 'number') return '0x' + val.toString(16);
+            if (val instanceof Uint8Array) {
+                return `new Uint8Array([${Array.from(val).map(v => '0x' + v.toString(16).padStart(2, '0')).join(', ')}])`;
+            }
+            if (Array.isArray(val)) {
+                if (val.every(v => typeof v === 'string')) {
+                    return '[' + val.map(v => JSON.stringify(v)).join(', ') + ']';
+                }
+                return '[' + val.map(v => '0x' + v.toString(16)).join(', ') + ']';
+            }
+            return JSON.stringify(val);
+        }
+
+        function isValueEqual(a, b) {
+            if (a === b) return true;
+            if (a instanceof Uint8Array && b instanceof Uint8Array) {
+                if (a.length !== b.length) return false;
+                for (let i = 0; i < a.length; i++) {
+                    if (a[i] !== b[i]) return false;
+                }
+                return true;
+            }
+            if (Array.isArray(a) && Array.isArray(b)) {
+                if (a.length !== b.length) return false;
+                for (let i = 0; i < a.length; i++) {
+                    if (a[i] !== b[i]) return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        const generateBtn = document.getElementById('generateBtn');
+        generateBtn.addEventListener('click', async () => {
+            if (!genOriginFileData || !genTargetFileData) return;
+
+            clearLog();
+            log('Starting Device Tree Patch Generator...', 'info');
+
+            try {
+                log('Decompiling and parsing Origin Device Tree...');
+                const originDtsText = await getDtsString(genOriginFileData, 'Origin');
+                const originDts = parseDTS(originDtsText);
+
+                log('Decompiling and parsing Target Device Tree...');
+                const targetDtsText = await getDtsString(genTargetFileData, 'Target');
+                const targetDts = parseDTS(targetDtsText);
+
+                log('Comparing Device Tree structures and generating JS Patch script...');
+
+                let codeLines = [];
+                codeLines.push(`// TreePatcher Dynamically Generated Patch Script`);
+                codeLines.push(`// Generated: ${new Date().toLocaleString()}`);
+                codeLines.push(`// Origin: ${genOriginFileData.name}`);
+                codeLines.push(`// Target: ${genTargetFileData.name}`);
+                codeLines.push(`// -------------------------------------------------------------`);
+                codeLines.push(`logger('Applying dynamically generated comparison patch...');\n`);
+
+                function compareNodes(path) {
+                    const origNode = originDts.get(path);
+                    const targNode = targetDts.get(path);
+
+                    if (!targNode) return;
+
+                    // 1. Compare properties of target node with origin node
+                    const targProps = targNode.$properties || [];
+                    targProps.forEach(tp => {
+                        const opVal = origNode ? origNode[tp.name] : undefined;
+
+                        if (!isValueEqual(opVal, tp.value)) {
+                            const formattedVal = formatValueForJs(tp.value);
+                            codeLines.push(`// Set ${path} -> ${tp.name}`);
+                            codeLines.push(`const node_${path.replace(/[^a-zA-Z0-9]/g, '_')} = dtb.get('${path}');`);
+                            codeLines.push(`if (node_${path.replace(/[^a-zA-Z0-9]/g, '_')}) {`);
+                            codeLines.push(`    node_${path.replace(/[^a-zA-Z0-9]/g, '_')}['${tp.name}'] = ${formattedVal};`);
+                            codeLines.push(`}`);
+                            codeLines.push(``);
+                        }
+                    });
+
+                    // 2. If origin has properties that target doesn't, delete them
+                    if (origNode) {
+                        const origProps = origNode.$properties || [];
+                        origProps.forEach(op => {
+                            const tpVal = targNode[op.name];
+                            if (tpVal === undefined) {
+                                codeLines.push(`// Delete ${path} -> ${op.name}`);
+                                codeLines.push(`const node_${path.replace(/[^a-zA-Z0-9]/g, '_')} = dtb.get('${path}');`);
+                                codeLines.push(`if (node_${path.replace(/[^a-zA-Z0-9]/g, '_')}) {`);
+                                codeLines.push(`    delete node_${path.replace(/[^a-zA-Z0-9]/g, '_')}['${op.name}'];`);
+                                codeLines.push(`}`);
+                                codeLines.push(``);
+                            }
+                        });
+                    }
+
+                    // 3. Compare children
+                    const targChildren = targNode.children || [];
+                    targChildren.forEach(tc => {
+                        const childPath = path === '/' ? `/${tc.$name}` : `${path}/${tc.$name}`;
+                        const origChild = originDts.get(childPath);
+
+                        if (!origChild) {
+                            // Target has child but origin doesn't: create it
+                            const propsObj = {};
+                            (tc.$properties || []).forEach(p => {
+                                propsObj[p.name] = p.value;
+                            });
+
+                            codeLines.push(`// Create Node ${childPath}`);
+                            codeLines.push(`const parent_${path.replace(/[^a-zA-Z0-9]/g, '_')} = dtb.get('${path}');`);
+                            codeLines.push(`if (parent_${path.replace(/[^a-zA-Z0-9]/g, '_')} && !parent_${path.replace(/[^a-zA-Z0-9]/g, '_')}.get('${tc.$name}')) {`);
+                            codeLines.push(`    parent_${path.replace(/[^a-zA-Z0-9]/g, '_')}.add('${tc.$name}', ${JSON.stringify(propsObj, null, 8)});`);
+                            codeLines.push(`}`);
+                            codeLines.push(``);
+                        } else {
+                            // Recurse children
+                            compareNodes(childPath);
+                        }
+                    });
+
+                    // 4. If origin has children that target doesn't: remove them
+                    if (origNode) {
+                        const origChildren = origNode.children || [];
+                        origChildren.forEach(oc => {
+                            const childPath = path === '/' ? `/${oc.$name}` : `${path}/${oc.$name}`;
+                            const targChild = targetDts.get(childPath);
+                            if (!targChild) {
+                                codeLines.push(`// Delete Node ${childPath}`);
+                                codeLines.push(`const parent_${path.replace(/[^a-zA-Z0-9]/g, '_')} = dtb.get('${path}');`);
+                                codeLines.push(`if (parent_${path.replace(/[^a-zA-Z0-9]/g, '_')}) {`);
+                                codeLines.push(`    parent_${path.replace(/[^a-zA-Z0-9]/g, '_')}.remove('${oc.$name}');`);
+                                codeLines.push(`}`);
+                                codeLines.push(``);
+                            }
+                        });
+                    }
+                }
+
+                compareNodes('/');
+                generatedPatchCode = codeLines.join('\n');
+
+                document.getElementById('generatedPatchCode').value = generatedPatchCode;
+                document.getElementById('gen-workspace').style.display = 'block';
+
+                log('JS Patch script successfully generated!', 'success');
+            } catch (err) {
+                log(`Generation Failed: ${err.message}`, 'error');
+                console.error(err);
+            }
+        });
+
+        const downloadGeneratedPatchBtn = document.getElementById('downloadGeneratedPatchBtn');
+        downloadGeneratedPatchBtn.addEventListener('click', () => {
+            if (!generatedPatchCode) return;
+
+            const blob = new Blob([generatedPatchCode], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `patch-${Date.now()}.js`;
+            a.click();
+            URL.revokeObjectURL(url);
+            log('JS Patch script downloaded.', 'success');
         });
     </script>
 </body>
