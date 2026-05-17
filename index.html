@@ -740,6 +740,17 @@
                     </div>
                 </div>
 
+                <!-- File Input Col Stock (Optional Reference) -->
+                <div style="flex: 1; min-width: 0;">
+                    <label>Stock Reference Tree (Optional Hardware Reference)</label>
+                    <div class="file-upload-zone" id="genstock-upload-zone">
+                        <span class="file-info" id="genstock-file-info">Select Stock Reference DTS / DTB</span>
+                        <br>
+                        <span class="file-status" id="genstock-file-status">no file</span>
+                        <input type="file" id="genStockFile" accept=".dts,.dtb,.dtbo">
+                    </div>
+                </div>
+
                 <!-- File Input Col Target -->
                 <div style="flex: 1; min-width: 0;">
                     <label>Target Device Tree (Reference)</label>
@@ -1497,6 +1508,7 @@
         // ==========================================
         let genOriginFileData = null;
         let genTargetFileData = null;
+        let genStockFileData = null;
         let generatedPatchCode = '';
 
         const genOriginInput = document.getElementById('genOriginFile');
@@ -1524,6 +1536,24 @@
                     genTargetZone
                 );
                 checkGenReady();
+            }
+        });
+
+        const genStockInput = document.getElementById('genStockFile');
+        const genStockZone = document.getElementById('genstock-upload-zone');
+        genStockInput.addEventListener('change', async (e) => {
+            if (e.target.files[0]) {
+                genStockFileData = await handleUploadedFile(
+                    e.target.files[0],
+                    document.getElementById('genstock-file-info'),
+                    document.getElementById('genstock-file-status'),
+                    genStockZone
+                );
+            } else {
+                genStockFileData = null;
+                document.getElementById('genstock-file-info').textContent = 'Select Stock Reference DTS / DTB';
+                document.getElementById('genstock-file-status').textContent = 'no file';
+                genStockZone.classList.remove('has-file');
             }
         });
 
@@ -1582,6 +1612,13 @@
                 const targetDtsText = await getDtsString(genTargetFileData, 'Target');
                 const targetDts = parseDTS(targetDtsText);
 
+                let stockDts = null;
+                if (genStockFileData) {
+                    log('Decompiling and parsing Stock reference Device Tree...');
+                    const stockDtsText = await getDtsString(genStockFileData, 'Stock');
+                    stockDts = parseDTS(stockDtsText);
+                }
+
                 log('Comparing Device Tree structures and generating JS Patch script...');
 
                 let codeLines = [];
@@ -1589,12 +1626,16 @@
                 codeLines.push(`// Generated: ${new Date().toLocaleString()}`);
                 codeLines.push(`// Origin: ${genOriginFileData.name}`);
                 codeLines.push(`// Target: ${genTargetFileData.name}`);
+                if (genStockFileData) {
+                    codeLines.push(`// Stock Reference: ${genStockFileData.name}`);
+                }
                 codeLines.push(`// -------------------------------------------------------------`);
                 codeLines.push(`logger('Applying dynamically generated comparison patch...');\n`);
 
                 function compareNodes(path) {
                     const origNode = originDts.get(path);
                     const targNode = targetDts.get(path);
+                    const stockNode = stockDts ? stockDts.get(path) : null;
 
                     if (!targNode) return;
 
@@ -1605,11 +1646,30 @@
 
                         if (!isValueEqual(opVal, tp.value)) {
                             const formattedVal = formatValueForJs(tp.value);
-                            codeLines.push(`// Set ${path} -> ${tp.name}`);
-                            codeLines.push(`const node_${path.replace(/[^a-zA-Z0-9]/g, '_')} = dtb.get('${path}');`);
-                            codeLines.push(`if (node_${path.replace(/[^a-zA-Z0-9]/g, '_')}) {`);
-                            codeLines.push(`    node_${path.replace(/[^a-zA-Z0-9]/g, '_')}['${tp.name}'] = ${formattedVal};`);
-                            codeLines.push(`}`);
+                            const pathSafe = path.replace(/[^a-zA-Z0-9]/g, '_');
+                            
+                            // Cross-reference with Stock
+                            const spVal = stockNode ? stockNode[tp.name] : undefined;
+                            if (stockNode && isValueEqual(tp.value, spVal)) {
+                                // Value came from stock! Generate dynamic check
+                                codeLines.push(`// Set ${path} -> ${tp.name} (Matched from Stock reference)`);
+                                codeLines.push(`const node_${pathSafe} = dtb.get('${path}');`);
+                                codeLines.push(`const stockNode_${pathSafe} = stock ? stock.get('${path}') : null;`);
+                                codeLines.push(`if (node_${pathSafe}) {`);
+                                codeLines.push(`    if (stockNode_${pathSafe} && stockNode_${pathSafe}['${tp.name}'] !== undefined) {`);
+                                codeLines.push(`        node_${pathSafe}['${tp.name}'] = stockNode_${pathSafe}['${tp.name}'];`);
+                                codeLines.push(`    } else {`);
+                                codeLines.push(`        node_${pathSafe}['${tp.name}'] = ${formattedVal};`);
+                                codeLines.push(`    }`);
+                                codeLines.push(`}`);
+                            } else {
+                                // Manual value override or no stock reference
+                                codeLines.push(`// Set ${path} -> ${tp.name}`);
+                                codeLines.push(`const node_${pathSafe} = dtb.get('${path}');`);
+                                codeLines.push(`if (node_${pathSafe}) {`);
+                                codeLines.push(`    node_${pathSafe}['${tp.name}'] = ${formattedVal};`);
+                                codeLines.push(`}`);
+                            }
                             codeLines.push(``);
                         }
                     });
@@ -1620,10 +1680,11 @@
                         origProps.forEach(op => {
                             const tpVal = targNode[op.name];
                             if (tpVal === undefined) {
+                                const pathSafe = path.replace(/[^a-zA-Z0-9]/g, '_');
                                 codeLines.push(`// Delete ${path} -> ${op.name}`);
-                                codeLines.push(`const node_${path.replace(/[^a-zA-Z0-9]/g, '_')} = dtb.get('${path}');`);
-                                codeLines.push(`if (node_${path.replace(/[^a-zA-Z0-9]/g, '_')}) {`);
-                                codeLines.push(`    delete node_${path.replace(/[^a-zA-Z0-9]/g, '_')}['${op.name}'];`);
+                                codeLines.push(`const node_${pathSafe} = dtb.get('${path}');`);
+                                codeLines.push(`if (node_${pathSafe}) {`);
+                                codeLines.push(`    delete node_${pathSafe}['${op.name}'];`);
                                 codeLines.push(`}`);
                                 codeLines.push(``);
                             }
@@ -1635,6 +1696,7 @@
                     targChildren.forEach(tc => {
                         const childPath = path === '/' ? `/${tc.$name}` : `${path}/${tc.$name}`;
                         const origChild = originDts.get(childPath);
+                        const stockChild = stockDts ? stockDts.get(childPath) : null;
 
                         if (!origChild) {
                             // Target has child but origin doesn't: create it
@@ -1643,11 +1705,32 @@
                                 propsObj[p.name] = p.value;
                             });
 
-                            codeLines.push(`// Create Node ${childPath}`);
-                            codeLines.push(`const parent_${path.replace(/[^a-zA-Z0-9]/g, '_')} = dtb.get('${path}');`);
-                            codeLines.push(`if (parent_${path.replace(/[^a-zA-Z0-9]/g, '_')} && !parent_${path.replace(/[^a-zA-Z0-9]/g, '_')}.get('${tc.$name}')) {`);
-                            codeLines.push(`    parent_${path.replace(/[^a-zA-Z0-9]/g, '_')}.add('${tc.$name}', ${JSON.stringify(propsObj, null, 8)});`);
-                            codeLines.push(`}`);
+                            const pathSafe = path.replace(/[^a-zA-Z0-9]/g, '_');
+                            const childSafe = childPath.replace(/[^a-zA-Z0-9]/g, '_');
+
+                            if (stockChild) {
+                                // The new node exists in Stock too! Let's generate a dynamic clone from Stock
+                                codeLines.push(`// Create Node ${childPath} (Cloned from Stock if available)`);
+                                codeLines.push(`const parent_${pathSafe} = dtb.get('${path}');`);
+                                codeLines.push(`const stockChild_${childSafe} = stock ? stock.get('${childPath}') : null;`);
+                                codeLines.push(`if (parent_${pathSafe} && !parent_${pathSafe}.get('${tc.$name}')) {`);
+                                codeLines.push(`    let initialProps = ${JSON.stringify(propsObj, null, 8)};`);
+                                codeLines.push(`    if (stockChild_${childSafe}) {`);
+                                codeLines.push(`        // Dynamically sync properties from reference Stock node at runtime`);
+                                codeLines.push(`        for (const prop of stockChild_${childSafe}.$properties) {`);
+                                codeLines.push(`            initialProps[prop.name] = prop.value;`);
+                                codeLines.push(`        }`);
+                                codeLines.push(`    }`);
+                                codeLines.push(`    parent_${pathSafe}.add('${tc.$name}', initialProps);`);
+                                codeLines.push(`}`);
+                            } else {
+                                // Regular hardcoded node creation
+                                codeLines.push(`// Create Node ${childPath}`);
+                                codeLines.push(`const parent_${pathSafe} = dtb.get('${path}');`);
+                                codeLines.push(`if (parent_${pathSafe} && !parent_${pathSafe}.get('${tc.$name}')) {`);
+                                codeLines.push(`    parent_${pathSafe}.add('${tc.$name}', ${JSON.stringify(propsObj, null, 8)});`);
+                                codeLines.push(`}`);
+                            }
                             codeLines.push(``);
                         } else {
                             // Recurse children
@@ -1662,10 +1745,11 @@
                             const childPath = path === '/' ? `/${oc.$name}` : `${path}/${oc.$name}`;
                             const targChild = targetDts.get(childPath);
                             if (!targChild) {
+                                const pathSafe = path.replace(/[^a-zA-Z0-9]/g, '_');
                                 codeLines.push(`// Delete Node ${childPath}`);
-                                codeLines.push(`const parent_${path.replace(/[^a-zA-Z0-9]/g, '_')} = dtb.get('${path}');`);
-                                codeLines.push(`if (parent_${path.replace(/[^a-zA-Z0-9]/g, '_')}) {`);
-                                codeLines.push(`    parent_${path.replace(/[^a-zA-Z0-9]/g, '_')}.remove('${oc.$name}');`);
+                                codeLines.push(`const parent_${pathSafe} = dtb.get('${path}');`);
+                                codeLines.push(`if (parent_${pathSafe}) {`);
+                                codeLines.push(`    parent_${pathSafe}.remove('${oc.$name}');`);
                                 codeLines.push(`}`);
                                 codeLines.push(``);
                             }
