@@ -163,4 +163,8 @@ export function applyAndroidPatches(dts, stock = null, options = {}) {
 
   const battery = dts.find('rk817,battery') ?? dts.get('/i2c@ff180000/pmic@20/battery');
   if (battery) battery.compatible = 'rk817,battery';
+
+  // ── 8. Volume Keys ──────────────────────────────────────────────────────────
+
+
 }
