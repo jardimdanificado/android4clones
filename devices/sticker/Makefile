@@ -1,7 +1,7 @@
 # Makefile for Sticker Clone Android DTS Patching
 # usage: make
 
-PATCHER = ../../android4clone.js
+PATCHER = ../../treepatcher.js
 DTC = node ../../dtbtools/dtc-wasm.js
 BASE_DTB = rk3326-hg36-linux.dtb
 STOCK_DTB = rf3536k3ka.dtb

@@ -1,12 +1,12 @@
 {
-  "name": "android4clone-patcher",
+  "name": "treepatcher-patcher",
   "version": "1.0.0",
   "description": "DTS Patcher for Android clones",
-  "main": "android4clone.js",
+  "main": "treepatcher.js",
   "type": "module",
   "scripts": {
     "start": "npx serve .",
-    "test": "node android4clone.js devices/sticker/rk3326-hg36-linux.dts --stock devices/sticker/rf3536k3ka.dts --experimental -o test-output.dts"
+    "test": "node treepatcher.js devices/sticker/rk3326-hg36-linux.dts --stock devices/sticker/rf3536k3ka.dts --experimental -o test-output.dts"
   },
   "dependencies": {},
   "devDependencies": {

@@ -1,5 +1,5 @@
 /**
- * Core patching logic for android4clone.
+ * Core patching logic for treepatcher.
  * Separated from CLI/File-System logic to allow use in browser.
  */
 

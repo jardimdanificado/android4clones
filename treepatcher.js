@@ -1,5 +1,5 @@
 /**
- * android4clone.js - CLI Device Tree Source (DTS) Patcher for Android on RK3326 handhelds
+ * treepatcher.js - CLI Device Tree Source (DTS) Patcher for Android on RK3326 handhelds
  */
 
 import { readFileSync, writeFileSync } from 'fs';
@@ -7,7 +7,7 @@ import { parseDTS } from './parser36.js';
 import { applyAndroidPatches } from './patcher-logic.js';
 
 const showHelp = () => console.log(`
-Usage: node android4clone.js <target.dts> [options]
+Usage: node treepatcher.js <target.dts> [options]
 
 Options:
   --stock <stock.dts>    Sync hardware parameters (DDR, Panel) from a working stock DTS.
@@ -16,7 +16,7 @@ Options:
   --help, -h             Show this help message.
 
 Example:
-  node android4clone.js base.dts --stock stock.dts --experimental -o my-device.dts
+  node treepatcher.js base.dts --stock stock.dts --experimental -o my-device.dts
 `);
 
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
