@@ -601,9 +601,6 @@
             <button class="tab-btn" data-tab="comparator-panel">
                 COMPARATOR
             </button>
-            <button class="tab-btn" data-tab="generator-panel">
-                PATCH GENERATOR
-            </button>
         </div>
 
         <!-- TAB 1: PATCHER PANEL -->
@@ -701,6 +698,21 @@
                 </div>
             </div>
 
+            <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+                <div style="flex: 1;">
+                    <label>Comparison Mode</label>
+                    <select id="compareMode" style="width: 100%; margin-top: 0.5rem; background: var(--bg-hard); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem 1rem; font-family: inherit; outline: none; cursor: pointer;">
+                        <option value="diff">Line-by-Line DTS Text Diff</option>
+                        <option value="changelog">Properties &amp; Values Logical Changelog</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="ignorePhandlesContainer" style="margin-top: 1rem; display: none; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" id="ignorePhandles" checked style="cursor: pointer; width: auto; margin: 0;">
+                <label for="ignorePhandles" style="cursor: pointer; user-select: none; margin: 0; font-size: 0.85rem; color: var(--fg-dim);">Ignore compiler phandle properties</label>
+            </div>
+
             <button id="compareBtn" class="btn" style="margin-top: 1.5rem;" disabled>Compare Device Trees</button>
 
             <!-- Comparison Result (hidden initially) -->
@@ -719,61 +731,13 @@
                     <button id="downloadCompareReportBtn" class="btn-secondary" style="width: 100%;">Download Comparison Report</button>
                 </div>
 
-                <label style="margin-top: 1.5rem; display: block;">DTS Line-by-Line Differences</label>
-                <div id="compare-diff-view" class="terminal-container" style="max-height: 400px; overflow-y: auto; padding: 1rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; line-height: 1.5; background: var(--bg-hard); border: 1px solid var(--border);">
+                <label id="compare-result-title" style="margin-top: 1.5rem; display: block;">DTS Line-by-Line Differences</label>
+                <div id="compare-diff-view" class="terminal-container" style="max-height: 400px; overflow-y: auto; padding: 1rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; line-height: 1.5; background: var(--bg-hard); border: 1px solid var(--border); white-space: pre-wrap; word-break: break-all;">
                     <!-- Diff details here -->
                 </div>
             </div>
         </div>
 
-        <!-- TAB 5: PATCH GENERATOR PANEL -->
-        <div id="generator-panel" class="tab-panel">
-            <div class="editor-layout">
-                <!-- File Input Col Origin -->
-                <div style="flex: 1; min-width: 0;">
-                    <label>Origin Device Tree (Base)</label>
-                    <div class="file-upload-zone" id="genorigin-upload-zone">
-                        <span class="file-info" id="genorigin-file-info">Select Origin DTS / DTB</span>
-                        <br>
-                        <span class="file-status" id="genorigin-file-status">no file</span>
-                        <input type="file" id="genOriginFile" accept=".dts,.dtb,.dtbo">
-                    </div>
-                </div>
-
-                <!-- File Input Col Stock (Optional Reference) -->
-                <div style="flex: 1; min-width: 0;">
-                    <label>Stock Reference Tree (Optional Hardware Reference)</label>
-                    <div class="file-upload-zone" id="genstock-upload-zone">
-                        <span class="file-info" id="genstock-file-info">Select Stock Reference DTS / DTB</span>
-                        <br>
-                        <span class="file-status" id="genstock-file-status">no file</span>
-                        <input type="file" id="genStockFile" accept=".dts,.dtb,.dtbo">
-                    </div>
-                </div>
-
-                <!-- File Input Col Target -->
-                <div style="flex: 1; min-width: 0;">
-                    <label>Target Device Tree (Reference)</label>
-                    <div class="file-upload-zone" id="gentarget-upload-zone">
-                        <span class="file-info" id="gentarget-file-info">Select Target DTS / DTB</span>
-                        <br>
-                        <span class="file-status" id="gentarget-file-status">no file</span>
-                        <input type="file" id="genTargetFile" accept=".dts,.dtb,.dtbo">
-                    </div>
-                </div>
-            </div>
-
-            <button id="generateBtn" class="btn" style="margin-top: 1.5rem;" disabled>Generate JS Patch</button>
-
-            <!-- Generator Workspace (hidden initially) -->
-            <div id="gen-workspace" style="display: none; margin-top: 1.5rem;">
-                <div class="tracker-card">
-                    <label>Generated JS Patch Code</label>
-                    <textarea id="generatedPatchCode" readonly style="width: 100%; height: 350px; background: var(--bg-hard); border: 1px solid var(--border); border-radius: 4px; padding: 1rem; color: var(--green); font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; line-height: 1.5; resize: vertical; margin-top: 0.5rem;"></textarea>
-                    <button id="downloadGeneratedPatchBtn" class="btn-secondary" style="margin-top: 0.75rem; width: 100%;">Download JS Patch File</button>
-                </div>
-            </div>
-        </div>
 
         <!-- Terminal Output -->
         <div class="terminal-container">
@@ -1373,6 +1337,42 @@
             return diff.reverse();
         }
 
+        function formatValueForDisplay(val) {
+            if (val === true) return 'true';
+            if (val === false) return 'false';
+            if (typeof val === 'string') return JSON.stringify(val);
+            if (typeof val === 'number') return '0x' + val.toString(16);
+            if (val instanceof Uint8Array) {
+                return `[Uint8Array: <${Array.from(val).map(v => v.toString(16).padStart(2, '0').toUpperCase()).join(' ')}>]`;
+            }
+            if (Array.isArray(val)) {
+                if (val.every(v => typeof v === 'string')) {
+                    return '[' + val.map(v => `"${v}"`).join(', ') + ']';
+                }
+                return '<' + val.map(v => '0x' + v.toString(16)).join(' ') + '>';
+            }
+            return JSON.stringify(val);
+        }
+
+        function isValueEqual(a, b) {
+            if (a === b) return true;
+            if (a instanceof Uint8Array && b instanceof Uint8Array) {
+                if (a.length !== b.length) return false;
+                for (let i = 0; i < a.length; i++) {
+                    if (a[i] !== b[i]) return false;
+                }
+                return true;
+            }
+            if (Array.isArray(a) && Array.isArray(b)) {
+                if (a.length !== b.length) return false;
+                for (let i = 0; i < a.length; i++) {
+                    if (a[i] !== b[i]) return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
         const compareBtn = document.getElementById('compareBtn');
         compareBtn.addEventListener('click', async () => {
             if (!compaFileData || !compbFileData) return;
@@ -1401,49 +1401,190 @@
                 const dtsA = await getDtsString(compaFileData, 'A');
                 const dtsB = await getDtsString(compbFileData, 'B');
                 
-                log('Analyzing line-by-line diff...');
-                const diffResults = diffDtsStrings(dtsA, dtsB);
-                
+                const mode = document.getElementById('compareMode').value;
                 const diffView = document.getElementById('compare-diff-view');
                 diffView.innerHTML = '';
                 
                 let reportLines = [];
-                reportLines.push(`TreePatcher - Device Tree Comparison Report`);
-                reportLines.push(`Generated: ${new Date().toLocaleString()}`);
-                reportLines.push(`------------------------------------------`);
-                reportLines.push(`File A: ${compaFileData.name} (${sizeA} bytes) | MD5: ${md5A}`);
-                reportLines.push(`File B: ${compbFileData.name} (${sizeB} bytes) | MD5: ${md5B}`);
-                reportLines.push(`------------------------------------------\n`);
-                
                 let changeCount = 0;
                 
-                diffResults.forEach(item => {
-                    if (item.type === 'added') {
-                        changeCount++;
-                        const lineText = `[+] Line B${item.lineB}: ${item.text}`;
-                        reportLines.push(lineText);
+                if (mode === 'changelog') {
+                    document.getElementById('compare-result-title').textContent = 'Properties & Values Logical Changelog';
+                    log('Parsing Device Tree structures...');
+                    const astA = parseDTS(dtsA);
+                    const astB = parseDTS(dtsB);
+                    
+                    log('Analyzing logical properties and nodes differences...');
+                    
+                    const ignorePhandlesVal = document.getElementById('ignorePhandles').checked;
+                    
+                    reportLines.push(`TreePatcher - Device Tree Logical Properties Changelog`);
+                    reportLines.push(`Generated: ${new Date().toLocaleString()}`);
+                    reportLines.push(`------------------------------------------`);
+                    reportLines.push(`File A (Base):      ${compaFileData.name} (${sizeA} bytes) | MD5: ${md5A}`);
+                    reportLines.push(`File B (Reference): ${compbFileData.name} (${sizeB} bytes) | MD5: ${md5B}`);
+                    reportLines.push(`------------------------------------------\n`);
+                    
+                    function compareLogicalNodes(path) {
+                        const baseNode = astA.get(path);
+                        const refNode = astB.get(path);
                         
-                        const el = document.createElement('div');
-                        el.className = 'diff-added';
-                        el.textContent = lineText;
-                        diffView.appendChild(el);
-                    } else if (item.type === 'removed') {
-                        changeCount++;
-                        const lineText = `[-] Line A${item.lineA}: ${item.text}`;
-                        reportLines.push(lineText);
+                        if (!refNode) return;
                         
-                        const el = document.createElement('div');
-                        el.className = 'diff-removed';
-                        el.textContent = lineText;
-                        diffView.appendChild(el);
+                        // 1. Compare properties of B (reference) with A (base)
+                        const refProps = refNode.$properties || [];
+                        refProps.forEach(rp => {
+                            if (ignorePhandlesVal && (rp.name === 'phandle' || rp.name === 'linux,phandle')) return;
+                            
+                            const bpVal = baseNode ? baseNode[rp.name] : undefined;
+                            
+                            if (!isValueEqual(bpVal, rp.value)) {
+                                changeCount++;
+                                if (bpVal === undefined) {
+                                    const block = [
+                                        `[PROPERTY ADDED] ${path} -> ${rp.name}`,
+                                        `  + Value: ${formatValueForDisplay(rp.value)}`
+                                    ];
+                                    reportLines.push(block.join('\n') + '\n');
+                                    
+                                    const el = document.createElement('div');
+                                    el.className = 'diff-added';
+                                    el.textContent = block.join('\n') + '\n';
+                                    diffView.appendChild(el);
+                                } else {
+                                    const block = [
+                                        `[PROPERTY CHANGED] ${path} -> ${rp.name}`,
+                                        `  - Base:      ${formatValueForDisplay(bpVal)}`,
+                                        `  + Reference: ${formatValueForDisplay(rp.value)}`
+                                    ];
+                                    reportLines.push(block.join('\n') + '\n');
+                                    
+                                    const el = document.createElement('div');
+                                    el.style.color = 'var(--yellow)';
+                                    el.textContent = block.join('\n') + '\n';
+                                    diffView.appendChild(el);
+                                }
+                            }
+                        });
+                        
+                        // 2. Properties in A (base) that are missing in B (reference)
+                        if (baseNode) {
+                            const baseProps = baseNode.$properties || [];
+                            baseProps.forEach(bp => {
+                                if (ignorePhandlesVal && (bp.name === 'phandle' || bp.name === 'linux,phandle')) return;
+                                
+                                const rpVal = refNode[bp.name];
+                                if (rpVal === undefined) {
+                                    changeCount++;
+                                    const block = [
+                                        `[PROPERTY DELETED] ${path} -> ${bp.name}`,
+                                        `  - Value was: ${formatValueForDisplay(bp.value)}`
+                                    ];
+                                    reportLines.push(block.join('\n') + '\n');
+                                    
+                                    const el = document.createElement('div');
+                                    el.className = 'diff-removed';
+                                    el.textContent = block.join('\n') + '\n';
+                                    diffView.appendChild(el);
+                                }
+                            });
+                        }
+                        
+                        // 3. Children in B (reference) that are missing in A (base)
+                        const refChildren = refNode.children || [];
+                        refChildren.forEach(rc => {
+                            const childPath = path === '/' ? `/${rc.$name}` : `${path}/${rc.$name}`;
+                            const baseChild = astA.get(childPath);
+                            
+                            if (!baseChild) {
+                                changeCount++;
+                                let block = [`[NODE ADDED] ${childPath}`];
+                                const props = rc.$properties || [];
+                                props.forEach(p => {
+                                    if (!ignorePhandlesVal || (p.name !== 'phandle' && p.name !== 'linux,phandle')) {
+                                        block.push(`  + ${p.name}: ${formatValueForDisplay(p.value)}`);
+                                    }
+                                });
+                                reportLines.push(block.join('\n') + '\n');
+                                
+                                const el = document.createElement('div');
+                                el.className = 'diff-added';
+                                el.textContent = block.join('\n') + '\n';
+                                diffView.appendChild(el);
+                            } else {
+                                compareLogicalNodes(childPath);
+                            }
+                        });
+                        
+                        // 4. Children in A (base) that are missing in B (reference)
+                        if (baseNode) {
+                            const baseChildren = baseNode.children || [];
+                            baseChildren.forEach(bc => {
+                                const childPath = path === '/' ? `/${bc.$name}` : `${path}/${bc.$name}`;
+                                const refChild = astB.get(childPath);
+                                if (!refChild) {
+                                    changeCount++;
+                                    const block = [`[NODE DELETED] ${childPath}`];
+                                    reportLines.push(block.join('\n') + '\n');
+                                    
+                                    const el = document.createElement('div');
+                                    el.className = 'diff-removed';
+                                    el.textContent = block.join('\n') + '\n';
+                                    diffView.appendChild(el);
+                                }
+                            });
+                        }
                     }
-                });
-                
-                if (changeCount === 0) {
-                    reportLines.push('Result: Files are identical. No differences found.');
-                    diffView.textContent = 'Files are identical. No differences found.';
+                    
+                    compareLogicalNodes('/');
+                    
+                    if (changeCount === 0) {
+                        reportLines.push('Result: Files are logically identical. No differences found.');
+                        diffView.textContent = 'Files are logically identical. No differences found.';
+                    } else {
+                        reportLines.push(`\nTotal Differences: ${changeCount}`);
+                    }
+                    
                 } else {
-                    reportLines.push(`\nTotal Differences: ${changeCount}`);
+                    document.getElementById('compare-result-title').textContent = 'DTS Line-by-Line Differences';
+                    log('Analyzing line-by-line diff...');
+                    const diffResults = diffDtsStrings(dtsA, dtsB);
+                    
+                    reportLines.push(`TreePatcher - Device Tree Comparison Report`);
+                    reportLines.push(`Generated: ${new Date().toLocaleString()}`);
+                    reportLines.push(`------------------------------------------`);
+                    reportLines.push(`File A: ${compaFileData.name} (${sizeA} bytes) | MD5: ${md5A}`);
+                    reportLines.push(`File B: ${compbFileData.name} (${sizeB} bytes) | MD5: ${md5B}`);
+                    reportLines.push(`------------------------------------------\n`);
+                    
+                    diffResults.forEach(item => {
+                        if (item.type === 'added') {
+                            changeCount++;
+                            const lineText = `[+] Line B${item.lineB}: ${item.text}`;
+                            reportLines.push(lineText);
+                            
+                            const el = document.createElement('div');
+                            el.className = 'diff-added';
+                            el.textContent = lineText;
+                            diffView.appendChild(el);
+                        } else if (item.type === 'removed') {
+                            changeCount++;
+                            const lineText = `[-] Line A${item.lineA}: ${item.text}`;
+                            reportLines.push(lineText);
+                            
+                            const el = document.createElement('div');
+                            el.className = 'diff-removed';
+                            el.textContent = lineText;
+                            diffView.appendChild(el);
+                        }
+                    });
+                    
+                    if (changeCount === 0) {
+                        reportLines.push('Result: Files are identical. No differences found.');
+                        diffView.textContent = 'Files are identical. No differences found.';
+                    } else {
+                        reportLines.push(`\nTotal Differences: ${changeCount}`);
+                    }
                 }
                 
                 compReport = reportLines.join('\n');
@@ -1470,302 +1611,14 @@
             log('Comparison report downloaded.', 'success');
         });
 
-        // ==========================================
-        // --- PATCH GENERATOR LOGIC ---
-        // ==========================================
-        let genOriginFileData = null;
-        let genTargetFileData = null;
-        let genStockFileData = null;
-        let generatedPatchCode = '';
-
-        const genOriginInput = document.getElementById('genOriginFile');
-        const genOriginZone = document.getElementById('genorigin-upload-zone');
-        genOriginInput.addEventListener('change', async (e) => {
-            if (e.target.files[0]) {
-                genOriginFileData = await handleUploadedFile(
-                    e.target.files[0],
-                    document.getElementById('genorigin-file-info'),
-                    document.getElementById('genorigin-file-status'),
-                    genOriginZone
-                );
-                checkGenReady();
-            }
-        });
-
-        const genTargetInput = document.getElementById('genTargetFile');
-        const genTargetZone = document.getElementById('gentarget-upload-zone');
-        genTargetInput.addEventListener('change', async (e) => {
-            if (e.target.files[0]) {
-                genTargetFileData = await handleUploadedFile(
-                    e.target.files[0],
-                    document.getElementById('gentarget-file-info'),
-                    document.getElementById('gentarget-file-status'),
-                    genTargetZone
-                );
-                checkGenReady();
-            }
-        });
-
-        const genStockInput = document.getElementById('genStockFile');
-        const genStockZone = document.getElementById('genstock-upload-zone');
-        genStockInput.addEventListener('change', async (e) => {
-            if (e.target.files[0]) {
-                genStockFileData = await handleUploadedFile(
-                    e.target.files[0],
-                    document.getElementById('genstock-file-info'),
-                    document.getElementById('genstock-file-status'),
-                    genStockZone
-                );
+        const compareMode = document.getElementById('compareMode');
+        const ignorePhandlesContainer = document.getElementById('ignorePhandlesContainer');
+        compareMode.addEventListener('change', () => {
+            if (compareMode.value === 'changelog') {
+                ignorePhandlesContainer.style.display = 'flex';
             } else {
-                genStockFileData = null;
-                document.getElementById('genstock-file-info').textContent = 'Select Stock Reference DTS / DTB';
-                document.getElementById('genstock-file-status').textContent = 'no file';
-                genStockZone.classList.remove('has-file');
+                ignorePhandlesContainer.style.display = 'none';
             }
-        });
-
-        function checkGenReady() {
-            document.getElementById('generateBtn').disabled = !(genOriginFileData && genTargetFileData);
-        }
-
-        function formatValueForJs(val) {
-            if (val === true) return 'true';
-            if (typeof val === 'string') return JSON.stringify(val);
-            if (typeof val === 'number') return '0x' + val.toString(16);
-            if (val instanceof Uint8Array) {
-                return `new Uint8Array([${Array.from(val).map(v => '0x' + v.toString(16).padStart(2, '0')).join(', ')}])`;
-            }
-            if (Array.isArray(val)) {
-                if (val.every(v => typeof v === 'string')) {
-                    return '[' + val.map(v => JSON.stringify(v)).join(', ') + ']';
-                }
-                return '[' + val.map(v => '0x' + v.toString(16)).join(', ') + ']';
-            }
-            return JSON.stringify(val);
-        }
-
-        function isValueEqual(a, b) {
-            if (a === b) return true;
-            if (a instanceof Uint8Array && b instanceof Uint8Array) {
-                if (a.length !== b.length) return false;
-                for (let i = 0; i < a.length; i++) {
-                    if (a[i] !== b[i]) return false;
-                }
-                return true;
-            }
-            if (Array.isArray(a) && Array.isArray(b)) {
-                if (a.length !== b.length) return false;
-                for (let i = 0; i < a.length; i++) {
-                    if (a[i] !== b[i]) return false;
-                }
-                return true;
-            }
-            return false;
-        }
-
-        const generateBtn = document.getElementById('generateBtn');
-        generateBtn.addEventListener('click', async () => {
-            if (!genOriginFileData || !genTargetFileData) return;
-
-            clearLog();
-            log('Starting Device Tree Patch Generator...', 'info');
-
-            try {
-                log('Decompiling and parsing Origin Device Tree...');
-                const originDtsText = await getDtsString(genOriginFileData, 'Origin');
-                const originDts = parseDTS(originDtsText);
-
-                log('Decompiling and parsing Target Device Tree...');
-                const targetDtsText = await getDtsString(genTargetFileData, 'Target');
-                const targetDts = parseDTS(targetDtsText);
-
-                let stockDts = null;
-                if (genStockFileData) {
-                    log('Decompiling and parsing Stock reference Device Tree...');
-                    const stockDtsText = await getDtsString(genStockFileData, 'Stock');
-                    stockDts = parseDTS(stockDtsText);
-                }
-
-                log('Comparing Device Tree structures and generating JS Patch script...');
-
-                let codeLines = [];
-                codeLines.push(`// TreePatcher Dynamically Generated Patch Script`);
-                codeLines.push(`// Generated: ${new Date().toLocaleString()}`);
-                codeLines.push(`// Origin: ${genOriginFileData.name}`);
-                codeLines.push(`// Target: ${genTargetFileData.name}`);
-                if (genStockFileData) {
-                    codeLines.push(`// Stock Reference: ${genStockFileData.name}`);
-                }
-                codeLines.push(`// -------------------------------------------------------------`);
-                codeLines.push(`logger('Applying dynamically generated comparison patch...');\n`);
-
-                function compareNodes(path) {
-                    const origNode = originDts.get(path);
-                    const targNode = targetDts.get(path);
-                    const stockNode = stockDts ? stockDts.get(path) : null;
-
-                    if (!targNode) return;
-
-                    // 1. Compare properties of target node with origin node
-                    const targProps = targNode.$properties || [];
-                    targProps.forEach(tp => {
-                        // Skip phandles (autogenerated compiler references that should never be manually copied or set)
-                        if (tp.name === 'phandle' || tp.name === 'linux,phandle') return;
-
-                        const opVal = origNode ? origNode[tp.name] : undefined;
-
-                        if (!isValueEqual(opVal, tp.value)) {
-                            const formattedVal = formatValueForJs(tp.value);
-                            
-                            // Cross-reference with Stock
-                            const spVal = stockNode ? stockNode[tp.name] : undefined;
-                            if (stockNode && isValueEqual(tp.value, spVal)) {
-                                // Value came from stock! Generate dynamic check
-                                codeLines.push(`// Set ${path} -> ${tp.name} (Matched from Stock reference)`);
-                                codeLines.push(`{`);
-                                codeLines.push(`    const node = dtb.get('${path}');`);
-                                codeLines.push(`    const stockNode = stock ? stock.get('${path}') : null;`);
-                                codeLines.push(`    if (node) {`);
-                                codeLines.push(`        if (stockNode && stockNode['${tp.name}'] !== undefined) {`);
-                                codeLines.push(`            node['${tp.name}'] = stockNode['${tp.name}'];`);
-                                codeLines.push(`        } else {`);
-                                codeLines.push(`            node['${tp.name}'] = ${formattedVal};`);
-                                codeLines.push(`        }`);
-                                codeLines.push(`    }`);
-                                codeLines.push(`}`);
-                            } else {
-                                // Manual value override or no stock reference
-                                codeLines.push(`// Set ${path} -> ${tp.name}`);
-                                codeLines.push(`{`);
-                                codeLines.push(`    const node = dtb.get('${path}');`);
-                                codeLines.push(`    if (node) {`);
-                                codeLines.push(`        node['${tp.name}'] = ${formattedVal};`);
-                                codeLines.push(`    }`);
-                                codeLines.push(`}`);
-                            }
-                            codeLines.push(``);
-                        }
-                    });
-
-                    // 2. If origin has properties that target doesn't, delete them
-                    if (origNode) {
-                        const origProps = origNode.$properties || [];
-                        origProps.forEach(op => {
-                            // Ignore phandles on deletion
-                            if (op.name === 'phandle' || op.name === 'linux,phandle') return;
-
-                            const tpVal = targNode[op.name];
-                            if (tpVal === undefined) {
-                                codeLines.push(`// Delete ${path} -> ${op.name}`);
-                                codeLines.push(`{`);
-                                codeLines.push(`    const node = dtb.get('${path}');`);
-                                codeLines.push(`    if (node) {`);
-                                codeLines.push(`        delete node['${op.name}'];`);
-                                codeLines.push(`    }`);
-                                codeLines.push(`}`);
-                                codeLines.push(``);
-                            }
-                        });
-                    }
-
-                    // 3. Compare children
-                    const targChildren = targNode.children || [];
-                    targChildren.forEach(tc => {
-                        const childPath = path === '/' ? `/${tc.$name}` : `${path}/${tc.$name}`;
-                        const origChild = originDts.get(childPath);
-                        const stockChild = stockDts ? stockDts.get(childPath) : null;
-
-                        if (!origChild) {
-                            // Target has child but origin doesn't: create it
-                            const propsObj = {};
-                            (tc.$properties || []).forEach(p => {
-                                // Skip phandle properties
-                                if (p.name !== 'phandle' && p.name !== 'linux,phandle') {
-                                    propsObj[p.name] = p.value;
-                                }
-                            });
-
-                            if (stockChild) {
-                                // The new node exists in Stock too! Let's generate a dynamic clone from Stock
-                                codeLines.push(`// Create Node ${childPath} (Cloned from Stock if available)`);
-                                codeLines.push(`{`);
-                                codeLines.push(`    const parent = dtb.get('${path}');`);
-                                codeLines.push(`    const stockChild = stock ? stock.get('${childPath}') : null;`);
-                                codeLines.push(`    if (parent && !parent.get('${tc.$name}')) {`);
-                                codeLines.push(`        let initialProps = ${JSON.stringify(propsObj, null, 12)};`);
-                                codeLines.push(`        if (stockChild) {`);
-                                codeLines.push(`            // Dynamically sync properties from reference Stock node at runtime`);
-                                codeLines.push(`            for (const prop of stockChild.$properties) {`);
-                                codeLines.push(`                if (prop.name !== 'phandle' && prop.name !== 'linux,phandle') {`);
-                                codeLines.push(`                    initialProps[prop.name] = prop.value;`);
-                                codeLines.push(`                }`);
-                                codeLines.push(`            }`);
-                                codeLines.push(`        }`);
-                                codeLines.push(`        parent.add('${tc.$name}', initialProps);`);
-                                codeLines.push(`    }`);
-                                codeLines.push(`}`);
-                            } else {
-                                // Regular hardcoded node creation
-                                codeLines.push(`// Create Node ${childPath}`);
-                                codeLines.push(`{`);
-                                codeLines.push(`    const parent = dtb.get('${path}');`);
-                                codeLines.push(`    if (parent && !parent.get('${tc.$name}')) {`);
-                                codeLines.push(`        parent.add('${tc.$name}', ${JSON.stringify(propsObj, null, 12)});`);
-                                codeLines.push(`    }`);
-                                codeLines.push(`}`);
-                            }
-                            codeLines.push(``);
-                        } else {
-                            // Recurse children
-                            compareNodes(childPath);
-                        }
-                    });
-
-                    // 4. If origin has children that target doesn't: remove them
-                    if (origNode) {
-                        const origChildren = origNode.children || [];
-                        origChildren.forEach(oc => {
-                            const childPath = path === '/' ? `/${oc.$name}` : `${path}/${oc.$name}`;
-                            const targChild = targetDts.get(childPath);
-                            if (!targChild) {
-                                codeLines.push(`// Delete Node ${childPath}`);
-                                codeLines.push(`{`);
-                                codeLines.push(`    const parent = dtb.get('${path}');`);
-                                codeLines.push(`    if (parent) {`);
-                                codeLines.push(`        parent.remove('${oc.$name}');`);
-                                codeLines.push(`    }`);
-                                codeLines.push(`}`);
-                                codeLines.push(``);
-                            }
-                        });
-                    }
-                }
-
-                compareNodes('/');
-                generatedPatchCode = codeLines.join('\n');
-
-                document.getElementById('generatedPatchCode').value = generatedPatchCode;
-                document.getElementById('gen-workspace').style.display = 'block';
-
-                log('JS Patch script successfully generated!', 'success');
-            } catch (err) {
-                log(`Generation Failed: ${err.message}`, 'error');
-                console.error(err);
-            }
-        });
-
-        const downloadGeneratedPatchBtn = document.getElementById('downloadGeneratedPatchBtn');
-        downloadGeneratedPatchBtn.addEventListener('click', () => {
-            if (!generatedPatchCode) return;
-
-            const blob = new Blob([generatedPatchCode], { type: 'text/javascript' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `patch-${Date.now()}.js`;
-            a.click();
-            URL.revokeObjectURL(url);
-            log('JS Patch script downloaded.', 'success');
         });
     </script>
 </body>
