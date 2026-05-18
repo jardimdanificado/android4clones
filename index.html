@@ -586,8 +586,8 @@
     <div class="container">
         <!-- Brand Header -->
         <header>
-            <h1>🪾TreePatcher</h1>
-            <div class="subtitle">R36S DTB Tools</div>
+            <h1>🪾</h1>
+            <div class="subtitle">TreePatcher - R36S DTB Tools</div>
         </header>
 
         <!-- Navigation Tabs -->
@@ -642,8 +642,11 @@
                 <label>Upload Custom JS Patch</label>
                 <div class="custom-patch-upload">
                     <input type="file" id="customPatchFile" accept=".js" style="display: none;">
-                    <button type="button" class="btn-secondary" onclick="document.getElementById('customPatchFile').click()">Load Custom Patch Script</button>
-                    <span id="custom-patch-status" style="margin-left: 1rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--text);">no custom patch loaded</span>
+                    <button type="button" class="btn-secondary"
+                        onclick="document.getElementById('customPatchFile').click()">Load Custom Patch Script</button>
+                    <span id="custom-patch-status"
+                        style="margin-left: 1rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--text);">no
+                        custom patch loaded</span>
                 </div>
             </div>
 
@@ -701,16 +704,20 @@
             <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 1rem;">
                 <div style="flex: 1;">
                     <label>Comparison Mode</label>
-                    <select id="compareMode" style="width: 100%; margin-top: 0.5rem; background: var(--bg-hard); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem 1rem; font-family: inherit; outline: none; cursor: pointer;">
+                    <select id="compareMode"
+                        style="width: 100%; margin-top: 0.5rem; background: var(--bg-hard); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem 1rem; font-family: inherit; outline: none; cursor: pointer;">
                         <option value="diff">Line-by-Line DTS Text Diff</option>
                         <option value="changelog">Properties &amp; Values Logical Changelog</option>
                     </select>
                 </div>
             </div>
 
-            <div id="ignorePhandlesContainer" style="margin-top: 1rem; display: none; align-items: center; gap: 0.5rem;">
+            <div id="ignorePhandlesContainer"
+                style="margin-top: 1rem; display: none; align-items: center; gap: 0.5rem;">
                 <input type="checkbox" id="ignorePhandles" checked style="cursor: pointer; width: auto; margin: 0;">
-                <label for="ignorePhandles" style="cursor: pointer; user-select: none; margin: 0; font-size: 0.85rem; color: var(--fg-dim);">Ignore compiler phandle properties</label>
+                <label for="ignorePhandles"
+                    style="cursor: pointer; user-select: none; margin: 0; font-size: 0.85rem; color: var(--fg-dim);">Ignore
+                    compiler phandle properties</label>
             </div>
 
             <button id="compareBtn" class="btn" style="margin-top: 1.5rem;" disabled>Compare Device Trees</button>
@@ -728,11 +735,14 @@
                             <div class="tracker-stats" id="stats-b"></div>
                         </div>
                     </div>
-                    <button id="downloadCompareReportBtn" class="btn-secondary" style="width: 100%;">Download Comparison Report</button>
+                    <button id="downloadCompareReportBtn" class="btn-secondary" style="width: 100%;">Download Comparison
+                        Report</button>
                 </div>
 
-                <label id="compare-result-title" style="margin-top: 1.5rem; display: block;">DTS Line-by-Line Differences</label>
-                <div id="compare-diff-view" class="terminal-container" style="max-height: 400px; overflow-y: auto; padding: 1rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; line-height: 1.5; background: var(--bg-hard); border: 1px solid var(--border); white-space: pre-wrap; word-break: break-all;">
+                <label id="compare-result-title" style="margin-top: 1.5rem; display: block;">DTS Line-by-Line
+                    Differences</label>
+                <div id="compare-diff-view" class="terminal-container"
+                    style="height: 400px; min-height: 150px; resize: vertical; overflow: auto; padding: 1rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; line-height: 1.5; background: var(--bg-hard); border: 1px solid var(--border); white-space: pre-wrap; word-break: break-all;">
                     <!-- Diff details here -->
                 </div>
             </div>
@@ -944,7 +954,7 @@
             allPatches.forEach(patch => {
                 const item = document.createElement('div');
                 item.className = 'patch-item';
-                
+
                 item.innerHTML = `
                     <div class="patch-checkbox-container">
                         <input type="checkbox" id="patch-check-${patch.id}" value="${patch.id}" checked>
@@ -973,7 +983,7 @@
                         reader.onerror = reject;
                         reader.readAsText(file);
                     });
-                    
+
                     const patchId = 'custom_' + Date.now();
                     customPatches.push({
                         id: patchId,
@@ -981,7 +991,7 @@
                         desc: 'User uploaded custom JavaScript patch execution script.',
                         code: text
                     });
-                    
+
                     document.getElementById('custom-patch-status').textContent = `Loaded: ${file.name}`;
                     log(`Custom patch script "${file.name}" loaded successfully.`, 'success');
                     renderPatchesChecklist();
@@ -1013,7 +1023,7 @@
             }
 
             const outputName = document.getElementById('outputName').value || 'rk3326-r36s-android.dtb';
-            
+
             // Get active patches
             const checkedIds = Array.from(patchesListContainer.querySelectorAll('input[type="checkbox"]:checked')).map(el => el.value);
 
@@ -1183,7 +1193,7 @@
             for (let i = 0; i < bytes.length; i++) {
                 words[i >> 2] |= bytes[i] << ((i % 4) * 8);
             }
-            
+
             const S11 = 7, S12 = 12, S13 = 17, S14 = 22;
             const S21 = 5, S22 = 9, S23 = 14, S24 = 20;
             const S31 = 4, S32 = 11, S33 = 16, S34 = 23;
@@ -1196,99 +1206,99 @@
             function gg(a, b, c, d, x, s, t) { return cmn((b & d) | (c & (~d)), a, b, x, s, t); }
             function hh(a, b, c, d, x, s, t) { return cmn(b ^ c ^ d, a, b, x, s, t); }
             function ii(a, b, c, d, x, s, t) { return cmn(c ^ (b | (~d)), a, b, x, s, t); }
-            
+
             function safe_add(x, y) {
                 const lsw = (x & 0xFFFF) + (y & 0xFFFF);
                 const msw = (x >> 16) + (y >> 16) + (lsw >> 16);
                 return (msw << 16) | (lsw & 0xFFFF);
             }
             function bit_rol(num, cnt) { return (num << cnt) | (num >>> (32 - cnt)); }
-            
+
             const bitLen = bytes.length * 8;
             words[bytes.length >> 2] |= 0x80 << ((bytes.length % 4) * 8);
             const padLen = (((bytes.length + 8) >> 6) + 1) * 16;
             while (words.length < padLen) words.push(0);
             words[padLen - 2] = bitLen & 0xFFFFFFFF;
             words[padLen - 1] = Math.floor(bitLen / 0x100000000);
-            
+
             let a = 1732584193;
             let b = -271733879;
             let c = -1732584194;
             let d = 271733878;
-            
+
             for (let i = 0; i < words.length; i += 16) {
                 const olda = a, oldb = b, oldc = c, oldd = d;
-                
-                a = ff(a, b, c, d, words[i+0], S11, -680876936);
-                d = ff(d, a, b, c, words[i+1], S12, -389564586);
-                c = ff(c, d, a, b, words[i+2], S13,  606105819);
-                b = ff(b, c, d, a, words[i+3], S14, -1044525330);
-                a = ff(a, b, c, d, words[i+4], S11, -176418897);
-                d = ff(d, a, b, c, words[i+5], S12,  1200080426);
-                c = ff(c, d, a, b, words[i+6], S13, -1473231341);
-                b = ff(b, c, d, a, words[i+7], S14, -45705983);
-                a = ff(a, b, c, d, words[i+8], S11,  1770035416);
-                d = ff(d, a, b, c, words[i+9], S12, -1958414417);
-                c = ff(c, d, a, b, words[i+10], S13, -42063);
-                b = ff(b, c, d, a, words[i+11], S14, -1990404162);
-                a = ff(a, b, c, d, words[i+12], S11,  1804603682);
-                d = ff(d, a, b, c, words[i+13], S12, -40341101);
-                c = ff(c, d, a, b, words[i+14], S13, -1502002290);
-                b = ff(b, c, d, a, words[i+15], S14,  1236535329);
-                
-                a = gg(a, b, c, d, words[i+1], S21, -165796510);
-                d = gg(d, a, b, c, words[i+6], S22, -1069501632);
-                c = gg(c, d, a, b, words[i+11], S23,  643717713);
-                b = gg(b, c, d, a, words[i+0], S24, -373897302);
-                a = gg(a, b, c, d, words[i+5], S21, -701558691);
-                d = gg(d, a, b, c, words[i+10], S22,  38016083);
-                c = gg(c, d, a, b, words[i+15], S23, -660478335);
-                b = gg(b, c, d, a, words[i+4], S24, -405537848);
-                a = gg(a, b, c, d, words[i+9], S21,  568446438);
-                d = gg(d, a, b, c, words[i+14], S22, -1019803690);
-                c = gg(c, d, a, b, words[i+3], S23, -187363961);
-                b = gg(b, c, d, a, words[i+8], S24,  1163531501);
-                a = gg(a, b, c, d, words[i+13], S21, -1444681467);
-                d = gg(d, a, b, c, words[i+2], S22, -51403784);
-                c = gg(c, d, a, b, words[i+7], S23,  1735328473);
-                b = gg(b, c, d, a, words[i+12], S24, -1926607734);
-                
-                a = hh(a, b, c, d, words[i+5], S31, -378558);
-                d = hh(d, a, b, c, words[i+8], S32, -2022574463);
-                c = hh(c, d, a, b, words[i+11], S33,  1839030562);
-                b = hh(b, c, d, a, words[i+14], S34, -35309556);
-                a = hh(a, b, c, d, words[i+1], S31, -1530992060);
-                d = hh(d, a, b, c, words[i+4], S32,  1272893353);
-                c = hh(c, d, a, b, words[i+7], S33, -155497632);
-                b = hh(b, c, d, a, words[i+10], S34, -1094730640);
-                a = hh(a, b, c, d, words[i+13], S31,  681279174);
-                d = hh(d, a, b, c, words[i+0], S32, -358537222);
-                c = hh(c, d, a, b, words[i+3], S33, -722521979);
-                b = hh(b, c, d, a, words[i+6], S34,  76029189);
-                a = hh(a, b, c, d, words[i+9], S31, -640364487);
-                d = hh(d, a, b, c, words[i+12], S32, -421815835);
-                c = hh(c, d, a, b, words[i+15], S33,  530742520);
-                b = hh(b, c, d, a, words[i+2], S34, -995338651);
-                
-                a = ii(a, b, c, d, words[i+0], S41, -198630844);
-                d = ii(d, a, b, c, words[i+7], S42,  1126891415);
-                c = ii(c, d, a, b, words[i+14], S43, -1416354905);
-                b = ii(b, c, d, a, words[i+5], S44, -57434055);
-                a = ii(a, b, c, d, words[i+12], S41,  1700485571);
-                d = ii(d, a, b, c, words[i+3], S42, -1894986606);
-                c = ii(c, d, a, b, words[i+10], S43, -1051523);
-                b = ii(b, c, d, a, words[i+1], S44, -2054922799);
-                a = ii(a, b, c, d, words[i+8], S41,  1873313359);
-                d = ii(d, a, b, c, words[i+15], S42, -30611744);
-                c = ii(c, d, a, b, words[i+6], S43, -1560198380);
-                b = ii(b, c, d, a, words[i+13], S44,  1309151649);
-                
+
+                a = ff(a, b, c, d, words[i + 0], S11, -680876936);
+                d = ff(d, a, b, c, words[i + 1], S12, -389564586);
+                c = ff(c, d, a, b, words[i + 2], S13, 606105819);
+                b = ff(b, c, d, a, words[i + 3], S14, -1044525330);
+                a = ff(a, b, c, d, words[i + 4], S11, -176418897);
+                d = ff(d, a, b, c, words[i + 5], S12, 1200080426);
+                c = ff(c, d, a, b, words[i + 6], S13, -1473231341);
+                b = ff(b, c, d, a, words[i + 7], S14, -45705983);
+                a = ff(a, b, c, d, words[i + 8], S11, 1770035416);
+                d = ff(d, a, b, c, words[i + 9], S12, -1958414417);
+                c = ff(c, d, a, b, words[i + 10], S13, -42063);
+                b = ff(b, c, d, a, words[i + 11], S14, -1990404162);
+                a = ff(a, b, c, d, words[i + 12], S11, 1804603682);
+                d = ff(d, a, b, c, words[i + 13], S12, -40341101);
+                c = ff(c, d, a, b, words[i + 14], S13, -1502002290);
+                b = ff(b, c, d, a, words[i + 15], S14, 1236535329);
+
+                a = gg(a, b, c, d, words[i + 1], S21, -165796510);
+                d = gg(d, a, b, c, words[i + 6], S22, -1069501632);
+                c = gg(c, d, a, b, words[i + 11], S23, 643717713);
+                b = gg(b, c, d, a, words[i + 0], S24, -373897302);
+                a = gg(a, b, c, d, words[i + 5], S21, -701558691);
+                d = gg(d, a, b, c, words[i + 10], S22, 38016083);
+                c = gg(c, d, a, b, words[i + 15], S23, -660478335);
+                b = gg(b, c, d, a, words[i + 4], S24, -405537848);
+                a = gg(a, b, c, d, words[i + 9], S21, 568446438);
+                d = gg(d, a, b, c, words[i + 14], S22, -1019803690);
+                c = gg(c, d, a, b, words[i + 3], S23, -187363961);
+                b = gg(b, c, d, a, words[i + 8], S24, 1163531501);
+                a = gg(a, b, c, d, words[i + 13], S21, -1444681467);
+                d = gg(d, a, b, c, words[i + 2], S22, -51403784);
+                c = gg(c, d, a, b, words[i + 7], S23, 1735328473);
+                b = gg(b, c, d, a, words[i + 12], S24, -1926607734);
+
+                a = hh(a, b, c, d, words[i + 5], S31, -378558);
+                d = hh(d, a, b, c, words[i + 8], S32, -2022574463);
+                c = hh(c, d, a, b, words[i + 11], S33, 1839030562);
+                b = hh(b, c, d, a, words[i + 14], S34, -35309556);
+                a = hh(a, b, c, d, words[i + 1], S31, -1530992060);
+                d = hh(d, a, b, c, words[i + 4], S32, 1272893353);
+                c = hh(c, d, a, b, words[i + 7], S33, -155497632);
+                b = hh(b, c, d, a, words[i + 10], S34, -1094730640);
+                a = hh(a, b, c, d, words[i + 13], S31, 681279174);
+                d = hh(d, a, b, c, words[i + 0], S32, -358537222);
+                c = hh(c, d, a, b, words[i + 3], S33, -722521979);
+                b = hh(b, c, d, a, words[i + 6], S34, 76029189);
+                a = hh(a, b, c, d, words[i + 9], S31, -640364487);
+                d = hh(d, a, b, c, words[i + 12], S32, -421815835);
+                c = hh(c, d, a, b, words[i + 15], S33, 530742520);
+                b = hh(b, c, d, a, words[i + 2], S34, -995338651);
+
+                a = ii(a, b, c, d, words[i + 0], S41, -198630844);
+                d = ii(d, a, b, c, words[i + 7], S42, 1126891415);
+                c = ii(c, d, a, b, words[i + 14], S43, -1416354905);
+                b = ii(b, c, d, a, words[i + 5], S44, -57434055);
+                a = ii(a, b, c, d, words[i + 12], S41, 1700485571);
+                d = ii(d, a, b, c, words[i + 3], S42, -1894986606);
+                c = ii(c, d, a, b, words[i + 10], S43, -1051523);
+                b = ii(b, c, d, a, words[i + 1], S44, -2054922799);
+                a = ii(a, b, c, d, words[i + 8], S41, 1873313359);
+                d = ii(d, a, b, c, words[i + 15], S42, -30611744);
+                c = ii(c, d, a, b, words[i + 6], S43, -1560198380);
+                b = ii(b, c, d, a, words[i + 13], S44, 1309151649);
+
                 a = safe_add(a, olda);
                 b = safe_add(b, oldb);
                 c = safe_add(c, oldc);
                 d = safe_add(d, oldd);
             }
-            
+
             const hex = [];
             const hash = [a, b, c, d];
             for (let i = 0; i < 4; i++) {
@@ -1307,7 +1317,7 @@
             const linesB = dtsB.split('\n');
             const n = linesA.length;
             const m = linesB.length;
-            
+
             const dp = Array.from({ length: n + 1 }, () => new Int32Array(m + 1));
             for (let i = 1; i <= n; i++) {
                 for (let j = 1; j <= m; j++) {
@@ -1318,7 +1328,7 @@
                     }
                 }
             }
-            
+
             const diff = [];
             let i = n, j = m;
             while (i > 0 || j > 0) {
@@ -1376,18 +1386,18 @@
         const compareBtn = document.getElementById('compareBtn');
         compareBtn.addEventListener('click', async () => {
             if (!compaFileData || !compbFileData) return;
-            
+
             clearLog();
             log('Starting Device Tree comparison...', 'info');
-            
+
             try {
                 log('Computing MD5 hashes...');
                 const md5A = md5(compaFileData.bytes.buffer);
                 const md5B = md5(compbFileData.bytes.buffer);
-                
+
                 const sizeA = compaFileData.bytes.length;
                 const sizeB = compbFileData.bytes.length;
-                
+
                 document.getElementById('stats-a').innerHTML = `
                     <div>Size: <strong>${sizeA} bytes</strong></div>
                     <div style="word-break: break-all;">MD5: <strong>${md5A}</strong></div>
@@ -1396,48 +1406,48 @@
                     <div>Size: <strong>${sizeB} bytes</strong></div>
                     <div style="word-break: break-all;">MD5: <strong>${md5B}</strong></div>
                 `;
-                
+
                 log('Decompiling Device Trees to DTS strings...');
                 const dtsA = await getDtsString(compaFileData, 'A');
                 const dtsB = await getDtsString(compbFileData, 'B');
-                
+
                 const mode = document.getElementById('compareMode').value;
                 const diffView = document.getElementById('compare-diff-view');
                 diffView.innerHTML = '';
-                
+
                 let reportLines = [];
                 let changeCount = 0;
-                
+
                 if (mode === 'changelog') {
                     document.getElementById('compare-result-title').textContent = 'Properties & Values Logical Changelog';
                     log('Parsing Device Tree structures...');
                     const astA = parseDTS(dtsA);
                     const astB = parseDTS(dtsB);
-                    
+
                     log('Analyzing logical properties and nodes differences...');
-                    
+
                     const ignorePhandlesVal = document.getElementById('ignorePhandles').checked;
-                    
+
                     reportLines.push(`TreePatcher - Device Tree Logical Properties Changelog`);
                     reportLines.push(`Generated: ${new Date().toLocaleString()}`);
                     reportLines.push(`------------------------------------------`);
                     reportLines.push(`File A (Base):      ${compaFileData.name} (${sizeA} bytes) | MD5: ${md5A}`);
                     reportLines.push(`File B (Reference): ${compbFileData.name} (${sizeB} bytes) | MD5: ${md5B}`);
                     reportLines.push(`------------------------------------------\n`);
-                    
+
                     function compareLogicalNodes(path) {
                         const baseNode = astA.get(path);
                         const refNode = astB.get(path);
-                        
+
                         if (!refNode) return;
-                        
+
                         // 1. Compare properties of B (reference) with A (base)
                         const refProps = refNode.$properties || [];
                         refProps.forEach(rp => {
                             if (ignorePhandlesVal && (rp.name === 'phandle' || rp.name === 'linux,phandle')) return;
-                            
+
                             const bpVal = baseNode ? baseNode[rp.name] : undefined;
-                            
+
                             if (!isValueEqual(bpVal, rp.value)) {
                                 changeCount++;
                                 if (bpVal === undefined) {
@@ -1446,7 +1456,7 @@
                                         `  + Value: ${formatValueForDisplay(rp.value)}`
                                     ];
                                     reportLines.push(block.join('\n') + '\n');
-                                    
+
                                     const el = document.createElement('div');
                                     el.className = 'diff-added';
                                     el.textContent = block.join('\n') + '\n';
@@ -1458,7 +1468,7 @@
                                         `  + Reference: ${formatValueForDisplay(rp.value)}`
                                     ];
                                     reportLines.push(block.join('\n') + '\n');
-                                    
+
                                     const el = document.createElement('div');
                                     el.style.color = 'var(--yellow)';
                                     el.textContent = block.join('\n') + '\n';
@@ -1466,13 +1476,13 @@
                                 }
                             }
                         });
-                        
+
                         // 2. Properties in A (base) that are missing in B (reference)
                         if (baseNode) {
                             const baseProps = baseNode.$properties || [];
                             baseProps.forEach(bp => {
                                 if (ignorePhandlesVal && (bp.name === 'phandle' || bp.name === 'linux,phandle')) return;
-                                
+
                                 const rpVal = refNode[bp.name];
                                 if (rpVal === undefined) {
                                     changeCount++;
@@ -1481,7 +1491,7 @@
                                         `  - Value was: ${formatValueForDisplay(bp.value)}`
                                     ];
                                     reportLines.push(block.join('\n') + '\n');
-                                    
+
                                     const el = document.createElement('div');
                                     el.className = 'diff-removed';
                                     el.textContent = block.join('\n') + '\n';
@@ -1489,13 +1499,13 @@
                                 }
                             });
                         }
-                        
+
                         // 3. Children in B (reference) that are missing in A (base)
                         const refChildren = refNode.children || [];
                         refChildren.forEach(rc => {
                             const childPath = path === '/' ? `/${rc.$name}` : `${path}/${rc.$name}`;
                             const baseChild = astA.get(childPath);
-                            
+
                             if (!baseChild) {
                                 changeCount++;
                                 let block = [`[NODE ADDED] ${childPath}`];
@@ -1506,7 +1516,7 @@
                                     }
                                 });
                                 reportLines.push(block.join('\n') + '\n');
-                                
+
                                 const el = document.createElement('div');
                                 el.className = 'diff-added';
                                 el.textContent = block.join('\n') + '\n';
@@ -1515,7 +1525,7 @@
                                 compareLogicalNodes(childPath);
                             }
                         });
-                        
+
                         // 4. Children in A (base) that are missing in B (reference)
                         if (baseNode) {
                             const baseChildren = baseNode.children || [];
@@ -1526,7 +1536,7 @@
                                     changeCount++;
                                     const block = [`[NODE DELETED] ${childPath}`];
                                     reportLines.push(block.join('\n') + '\n');
-                                    
+
                                     const el = document.createElement('div');
                                     el.className = 'diff-removed';
                                     el.textContent = block.join('\n') + '\n';
@@ -1535,34 +1545,34 @@
                             });
                         }
                     }
-                    
+
                     compareLogicalNodes('/');
-                    
+
                     if (changeCount === 0) {
                         reportLines.push('Result: Files are logically identical. No differences found.');
                         diffView.textContent = 'Files are logically identical. No differences found.';
                     } else {
                         reportLines.push(`\nTotal Differences: ${changeCount}`);
                     }
-                    
+
                 } else {
                     document.getElementById('compare-result-title').textContent = 'DTS Line-by-Line Differences';
                     log('Analyzing line-by-line diff...');
                     const diffResults = diffDtsStrings(dtsA, dtsB);
-                    
+
                     reportLines.push(`TreePatcher - Device Tree Comparison Report`);
                     reportLines.push(`Generated: ${new Date().toLocaleString()}`);
                     reportLines.push(`------------------------------------------`);
                     reportLines.push(`File A: ${compaFileData.name} (${sizeA} bytes) | MD5: ${md5A}`);
                     reportLines.push(`File B: ${compbFileData.name} (${sizeB} bytes) | MD5: ${md5B}`);
                     reportLines.push(`------------------------------------------\n`);
-                    
+
                     diffResults.forEach(item => {
                         if (item.type === 'added') {
                             changeCount++;
                             const lineText = `[+] Line B${item.lineB}: ${item.text}`;
                             reportLines.push(lineText);
-                            
+
                             const el = document.createElement('div');
                             el.className = 'diff-added';
                             el.textContent = lineText;
@@ -1571,14 +1581,14 @@
                             changeCount++;
                             const lineText = `[-] Line A${item.lineA}: ${item.text}`;
                             reportLines.push(lineText);
-                            
+
                             const el = document.createElement('div');
                             el.className = 'diff-removed';
                             el.textContent = lineText;
                             diffView.appendChild(el);
                         }
                     });
-                    
+
                     if (changeCount === 0) {
                         reportLines.push('Result: Files are identical. No differences found.');
                         diffView.textContent = 'Files are identical. No differences found.';
@@ -1586,9 +1596,9 @@
                         reportLines.push(`\nTotal Differences: ${changeCount}`);
                     }
                 }
-                
+
                 compReport = reportLines.join('\n');
-                
+
                 document.getElementById('compare-workspace').style.display = 'block';
                 log(`Comparison complete! Found ${changeCount} differences.`, 'success');
             } catch (err) {
@@ -1600,7 +1610,7 @@
         const downloadCompareReportBtn = document.getElementById('downloadCompareReportBtn');
         downloadCompareReportBtn.addEventListener('click', () => {
             if (!compReport) return;
-            
+
             const blob = new Blob([compReport], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
